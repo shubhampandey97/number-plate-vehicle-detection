@@ -1,0 +1,25 @@
+
+========== DATASET ANALYSIS ==========
+
+Dataset: custom_dataset
+Images: 410
+Annotations: 116
+Formats Detected: ['YOLO']
+--------------------------------------------------
+Dataset: dataset
+Images: 180
+Annotations: 99
+Formats Detected: ['YOLO']
+--------------------------------------------------
+Dataset: roboflow_dataset
+Images: 99
+Annotations: 100
+Formats Detected: ['YOLO']
+--------------------------------------------------
+Dataset: Traffic Dataset
+Images: 1443
+Annotations: 923
+Formats Detected: ['YOLO']
+--------------------------------------------------
+
+========== ANALYSIS COMPLETE ==========

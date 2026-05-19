@@ -1,0 +1,54 @@
+
+========== DATASET VALIDATION ==========
+
+Total Images: 1290
+Total Labels: 1138
+Unmatched Images: 338
+Unmatched Labels: 186
+Corrupted Images: 0
+Empty Labels: 7
+Invalid Annotations: 2
+
+========== SAMPLE ISSUES ==========
+
+
+Sample Unmatched Images:
+00 (47)
+20230515_095931
+00 (30)
+20230518_092144
+20230711_162738
+20230620_161342
+20230711_171141
+20230719_190344
+20230626_091550
+20230518_092053
+
+Sample Unmatched Labels:
+00 (272)
+00 (183)
+11 (11)
+11 (21)
+11 (23)
+Video1_32
+00 (209)
+11 (15)
+00 (807)
+Video1_35
+
+Sample Corrupted Images:
+
+Sample Empty Labels:
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (316).txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (403).txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (427).txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (446).txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (69).txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (70).txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\Traffic Dataset\labels\00 (832).txt
+
+Sample Invalid Annotations:
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\custom_dataset\classes.txt
+D:\Guvi\Projects\major\number-plate-vehicle-detection\data\raw_datasets\roboflow_dataset\classes.txt
+
+========== VALIDATION COMPLETE ==========

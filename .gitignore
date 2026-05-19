@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+.env/
+venv/
+ENV/
+env/
+
+# Conda
+*.conda
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Streamlit
+.streamlit/
+
+# Model Weights
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Data
+data
+
+# EDA REPORTS
+eda_report/visualization/
+eda_report/traffic_eda_report/
+
+# Cache
+*.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# YOLO outputs
+runs/detect/outputs/training/number_plate_detector/weights/
+runs/detect/runs/traffic_object_detector/weights/
+runs/detect/runs1/detect/traffic_object_detector-2/weights/
+
+# VIDEOS
+*.mp4
+*.avi
+*.mov
+
+# Inference outputs
+src/inference/input/
+src/inference/output/
+src/inference/crops/
+
+# TEMP FILES
+*.tmp
+*.temp
+
+# TORCH CACHE
+torch_cache/
+
+# CUDA CACHE
+.nv/
+
+# PYTEST
+.pytest_cache/
+
+# MYPY
+.mypy_cache/

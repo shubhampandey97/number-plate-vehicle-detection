@@ -1,0 +1,47 @@
+
+========== FINAL DATASET VALIDATION ==========
+
+
+========== TRAIN VALIDATION ==========
+
+Total Images: 1247
+Total Labels: 1247
+Unmatched Images: 0
+Unmatched Labels: 0
+Corrupted Images: 0
+Empty Labels: 0
+Invalid Annotations: 0
+
+Sample Unmatched Images:
+
+Sample Unmatched Labels:
+
+========== VAL VALIDATION ==========
+
+Total Images: 356
+Total Labels: 356
+Unmatched Images: 0
+Unmatched Labels: 0
+Corrupted Images: 0
+Empty Labels: 0
+Invalid Annotations: 0
+
+Sample Unmatched Images:
+
+Sample Unmatched Labels:
+
+========== TEST VALIDATION ==========
+
+Total Images: 179
+Total Labels: 179
+Unmatched Images: 0
+Unmatched Labels: 0
+Corrupted Images: 0
+Empty Labels: 0
+Invalid Annotations: 0
+
+Sample Unmatched Images:
+
+Sample Unmatched Labels:
+
+========== VALIDATION COMPLETE ==========

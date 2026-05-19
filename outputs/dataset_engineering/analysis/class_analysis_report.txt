@@ -1,0 +1,14 @@
+
+========== RAW DATASET CLASS ANALYSIS ==========
+
+Class 0 (Bike) : 5416 annotations
+Class 1 (Bus) : 689 annotations
+Class 2 (Car) : 1644 annotations
+Class 3 (Number_plate) : 2117 annotations
+Class 4 (Person) : 1268 annotations
+Class 5 (Truck) : 449 annotations
+Class 6 (Auto) : 544 annotations
+
+Invalid Annotations: 0
+
+========== ANALYSIS COMPLETE ==========

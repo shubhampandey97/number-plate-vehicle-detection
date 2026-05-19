@@ -1,0 +1,22 @@
+Training set stats
+
+Number of images: 1247
+Bike: 2216
+Bus: 500
+Car: 6017
+Number Plate: 2615
+Person: 104
+Truck: 649
+Auto: 1503
+
+Validation set stats
+
+Number of images: 356
+Bike: 580
+Bus: 108
+Car: 1617
+Number Plate: 699
+Person: 41
+Truck: 146
+Auto: 421
+

@@ -37,10 +37,12 @@ src/anpr/                  shared library (use this, don't copy-paste OCR code a
 tools/                     evaluation CLIs (argparse, paths relative to repo root)
   check_leakage.py         dHash near-duplicates ACROSS splits -> docs/leakage/leakage_report.md + cross_split_pairs.csv
   inspect_leakage.py       contact sheets of pairs (git-ignored jpgs) + scene groups (union-find, any split) -> groups.csv
+  make_group_split.py      split v2: drop duplicate copies (dHash 0), assign whole scenes (dHash<=4) to 70/15/15, seeded,
+                           class-balanced -> data/final_v2 + docs/leakage/split_v2.csv/report; verifies 0 cross-split pairs
   make_ocr_labelset.py     crops GT plate boxes -> eval/ocr_gt/crops + ocr_gt.csv to hand-label
   eval_ocr.py              legacy vs new OCR: exact match, CER, read rate, precision; by lines/height/condition/country
   eval_detector_test.py    detector metrics on labelled test images (default weights models/yolov8l_baseline.pt)
-tests/                     pytest (31 tests); CI in .github/workflows/ci.yml
+tests/                     pytest (32 tests); CI in .github/workflows/ci.yml
 app/streamlit_app.py       dashboard (Image / Video / Live), loads models/yolov8l_baseline.pt
 scripts/train.py           YOLOv8l training config (GPU, device=0), writes runs/train/ (git-ignored)
 scripts/data_prep/         analysis, cleaning, conversion (COCO->YOLO), merging (remap_and_merge_datasets = the real merge),
@@ -78,7 +80,8 @@ Run every script from the repo root.
 - Commit messages end with the co-author line. Work on `upgrade-v2`; open a PR to `main` per finished goal.
 
 ## Current state (8 Nov 2026)
-- Done: audit (+ corrections after the on-disk check), `src/anpr`, tools, 31 tests, CI, requirements fixed, CLAUDE.md, repo restructured.
-- **Goal 1 result:** leakage confirmed at scale: 4,749 cross-split pairs (47 exact); val 294/356 (82.6 %), test 154/179 (86.0 %) have a near-duplicate in another split. Val mAP 0.985 is not trustworthy, and the current test split isn't held out in practice.
-- Next: `python tools/inspect_leakage.py` → look at `docs/leakage/pairs_*.jpg` to confirm the pairs are the same scene → use `docs/leakage/groups.csv` to build a **group-aware split** (whole scene groups go to one split, seeded) → retrain on GPU → evaluate on the new test split.
-- In parallel (no GPU needed): OCR label set from the new test split once it exists, then `eval_ocr.py`.
+- Done: audit, `src/anpr`, tools, 32 tests, CI, requirements, CLAUDE.md, restructure, leakage check + inspection.
+- **Leakage:** val 82.6 % / test 86.0 % near-duplicated in other splits. Cause: the merge contains the same frames 2–3 times (jpg + png copies; `dataset` = `roboflow_dataset`) **plus** consecutive frames from fixed traffic cameras. 588 scenes, largest 4.6 %.
+- Env: `anpr_env` works, torch 2.11.0+cu126, GPU = GeForce MX250 4 GB (inference/OCR OK; training YOLOv8l@960 → use Kaggle/Colab).
+- Weights: `models/yolov8l_baseline.pt` in place.
+- Next: `python tools/make_group_split.py` → `python tools/check_leakage.py --root data/final_v2 --out docs/leakage/v2` (expect 0) → commit docs/leakage/{groups.csv,groups_report.md,split_v2.csv,split_v2_report.md,v2/} → retrain on v2 (Kaggle/Colab notebook) → evaluate on v2 test → OCR label set from v2 test.

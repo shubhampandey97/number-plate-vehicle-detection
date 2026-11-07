@@ -50,3 +50,17 @@ def test_all_pairs_threshold():
     import inspect_leakage as il
     h = [np.uint64(0), np.uint64(0b111), np.uint64(0xFFFF)]
     assert il.all_pairs(h, 3) == [(0, 1, 3)]
+
+
+def test_assign_groups_keeps_groups_whole_and_balances():
+    from collections import Counter
+
+    import make_group_split as mg
+    groups = {g: {"n": n, "cls": Counter({3: n})} for g, n in enumerate([30, 20, 10, 10, 10, 5, 5, 5, 3, 2])}
+    out = mg.assign_groups(groups, {"train": 0.7, "val": 0.15, "test": 0.15}, seed=0)
+    assert set(out) == set(groups)                      # every group gets exactly one split
+    n = Counter()
+    for g, s in out.items():
+        n[s] += groups[g]["n"]
+    assert n["train"] > n["val"] > 0 and n["test"] > 0
+    assert out == mg.assign_groups(groups, {"train": 0.7, "val": 0.15, "test": 0.15}, seed=0)  # seeded

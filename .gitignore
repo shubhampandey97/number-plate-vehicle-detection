@@ -76,3 +76,4 @@ eval/ocr_gt/crops/
 docs/results/test_eval/
 docs/leakage/*.jpg
 streamlit_app/
+logs/

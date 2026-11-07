@@ -33,15 +33,18 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 14. **`streamlit_app/utils.py` loads a different, older model** (`number_plate_detector`, YOLOv8n, 1 class).
 15. **`requirements.txt` couldn't be installed:** it was UTF-16 encoded, had conda `@ file:///C:/...` lines, and pinned both `opencv-python` and `-headless`. Replaced with a minimal pinned file.
 16. **Hard-coded Windows paths** (`D:\Guvi\...`). `main.py` is empty, `src/detection/` and `src/utils/` are empty. No tests.
-17. **Source of each image is lost.** `remap_and_merge_datasets.py` renamed everything to `img_NNNNNN` and saved no mapping. The raw folders now hold about 1,236 label files (923 + 115 + 99 + 99), but the merged set has 1,782 labelled images, so the raw folders changed after the merge, or the merge used another copy (`data/Traffic Dataset` 2,166 images, `data/raw` 509, `data/dataset` 198). → Goal 5 (re-split by source) first needs **provenance recovered by matching image hashes** against every copy under `data/`. `data/raw/best.pt` is unexplained.
-18. Training itself used `seed: 0` (args.yaml); only the split script is unseeded.
+17. **The merge included the same data 2–3 times (found 8 Nov from the leakage pairs).** Files `img_000180–000934` are `.jpg` and `img_000935–001666` are `.png` copies of mostly the same frames (identical-hash pairs sit exactly 656 or 732 indices apart), and `img_000000–089` (jpg), `000090–179` (png), `000180+` (jpg) repeat the same ~90 images (`raw_datasets/dataset` and `roboflow_dataset` are the same 6-class dataset). 801 cross-split pairs have dHash distance 0. So the old val/test scores were partly computed on copies of training images. → `tools/make_group_split.py` drops copies (distance 0) and splits by scene.
+18. **Source of each image is lost.** `remap_and_merge_datasets.py` renamed everything to `img_NNNNNN` and saved no mapping. The raw folders now hold about 1,236 label files (923 + 115 + 99 + 99), but the merged set has 1,782 labelled images, so the raw folders changed after the merge, or the merge used another copy (`data/Traffic Dataset` 2,166 images, `data/raw` 509, `data/dataset` 198). → Goal 5 (re-split by source) first needs **provenance recovered by matching image hashes** against every copy under `data/`. `data/raw/best.pt` is unexplained.
+19. Training itself used `seed: 0` (args.yaml); only the split script is unseeded.
 
 ## Plan
 
 | Goal | What | CPU cost | Status |
 |---|---|---|---|
 | 1 | Leakage check train↔val↔test (`tools/check_leakage.py`) | light, <1 min | **done: 82.6 % val / 86.0 % test leaked** |
-| 1b | Inspect pairs + scene groups (`tools/inspect_leakage.py`) → group-aware seeded re-split | light | inspect tool ready |
+| 1b | Inspect pairs + scene groups (`tools/inspect_leakage.py`) | light | **done**: 588 scenes, largest 4.6 %; contact sheets show same frames / consecutive frames of fixed cameras |
+| 1c | Deduplicated, group-aware, seeded split v2 (`tools/make_group_split.py` → `data/final_v2`) + re-check | light | tool ready |
+| 1d | Retrain YOLOv8 on split v2 (Kaggle/Colab GPU; local GPU is an MX250 4 GB), evaluate on v2 test | GPU | todo |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
@@ -56,7 +59,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] Repo checked on disk by Claude Code (8 Nov): best.pt present (87.7 MB), test 179/179 labelled, findings 4/12/17/18 corrected
 - [x] Goal 1 run (8 Nov): leakage confirmed, see docs/leakage/leakage_report.md
 - [x] Repo restructured (8 Nov): app/, scripts/, legacy/, results/, reports/, models/; dead scripts and old experiment folders removed
-- [ ] Goal 1b: inspect pairs, build group-aware split
+- [x] Goal 1b (8 Nov): 588 scenes (201 singletons, 12 of 21–100 images, largest 82 = 4.6 %); pairs confirmed visually (identical frames incl. jpg/png copies; consecutive frames of the same fixed cameras); weights moved to models/
+- [ ] Goal 1c: run make_group_split.py, re-run check_leakage on data/final_v2 (expect 0)
 - [ ] Goal 2 labels
 - [ ] Goal 3 run
 - [ ] Goal 4 run

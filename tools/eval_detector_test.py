@@ -9,7 +9,7 @@ as a false positive. On the current data all 179 test images are labelled, so
 this filter changes nothing; it is kept in case the folder changes.
 
 Usage (GPU or CPU; on CPU it is slow at imgsz 960 - fine to run later):
-    python tools/eval_detector_test.py --weights path/to/best.pt \
+    python tools/eval_detector_test.py --weights models/yolov8l_baseline.pt \
         --data data/final_merged_datasets/data.yaml --imgsz 960
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ EXTS = {".jpg", ".jpeg", ".png"}
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--weights", required=True)
+    ap.add_argument("--weights", default="models/yolov8l_baseline.pt")
     ap.add_argument("--data", default="data/final_merged_datasets/data.yaml")
     ap.add_argument("--imgsz", type=int, default=960)
     ap.add_argument("--device", default=None, help="0 for GPU, cpu for CPU")

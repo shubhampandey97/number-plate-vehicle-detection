@@ -37,3 +37,16 @@ def test_finds_near_duplicate_across_splits(tmp_path):
 def test_popcount():
     x = np.array([0, 1, 3, 0xFFFFFFFFFFFFFFFF], dtype=np.uint64)
     assert cl.popcount64(x).tolist() == [0, 1, 2, 64]
+
+
+def test_scene_groups_chain_and_singleton():
+    import inspect_leakage as il
+    # 0-1 and 1-2 linked (a chain = one scene), 3 alone
+    groups = il.scene_groups(4, [(0, 1, 2), (1, 2, 3)])
+    assert groups[0] == groups[1] == groups[2] != groups[3]
+
+
+def test_all_pairs_threshold():
+    import inspect_leakage as il
+    h = [np.uint64(0), np.uint64(0b111), np.uint64(0xFFFF)]
+    assert il.all_pairs(h, 3) == [(0, 1, 3)]

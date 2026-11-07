@@ -1,12 +1,12 @@
 # ANPR audit (7 Nov 2026)
 
-Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the headline numbers can go on a CV as they are, and what has to be measured first.
+Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from before the 8 Nov restructure (`src/ocr` → `legacy/ocr`, `src/tracking` → `legacy/tracking`, `src/analytics` → `legacy/analytics`, `streamlit_app/app.py` → `app/streamlit_app.py`, `src/dataset_engineering` → `scripts/data_prep`, `eda` → `scripts/eda`; see CLAUDE.md). Goal: find out which of the headline numbers can go on a CV as they are, and what has to be measured first.
 
 ## Summary
 
 | Claim | Status |
 |---|---|
-| Detector P 0.962 / R 0.973 / mAP@0.5 0.985 (YOLOv8l, epoch 150) | **Real but optimistic.** It's the **val** split, and the same split picked `best.pt`. The split was random, with no seed, over data that includes video frames, so near-duplicate frames may sit in both train and val. Needs a test-split number and a leakage check. |
+| Detector P 0.962 / R 0.973 / mAP@0.5 0.985 (YOLOv8l, epoch 150) | **Inflated by leakage (confirmed 8 Nov).** It's the **val** split, which also picked `best.pt`. `tools/check_leakage.py`: 4,749 cross-split near-duplicate pairs (47 byte-identical); **82.6 % of val and 86.0 % of test images** have a near-duplicate in another split. Needs a group-aware re-split and retraining before any detector number is quotable. |
 | "Automatic Number Plate Recognition" | **Not measured.** OCR has never been scored. `eda/ocr_ground_truth.py` writes image names with blank text, so no labels exist. |
 | End-to-end plate reading works | **Evidence says no.** `outputs/logs/plate_logs.csv` has 38 plates read by the tracker. **0 of 38** match an Indian plate format, and all are 4–8 characters, while real plates have 9–10. The format corrector (below) can't rescue any of them, so they are misreads, not small O/0-type slips. |
 
@@ -15,7 +15,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 ### Evaluation
 1. **No held-out test number.** `results.csv` metrics are on val, which was also used to choose the best checkpoint and for early stopping (`patience=40`).
 2. **Split isn't reproducible.** `split_final_dataset.py` calls `random.shuffle` with no seed, so it can't be recreated.
-3. **Possible leakage.** "Traffic Dataset" comes from videos (`Video11.mp4`, …). A random image-level split puts consecutive frames of the same car and plate into both train and val. → `tools/check_leakage.py`.
+3. **Leakage: confirmed.** "Traffic Dataset" comes from videos (`Video11.mp4`, …), and a random image-level split put consecutive frames of the same scene into train, val and test. `check_leakage.py` (dHash, Hamming ≤ 4): val 294/356 (82.6 %), test 154/179 (86.0 %) have a near-duplicate in another split; 47 cross-split pairs are byte-identical. → `tools/inspect_leakage.py` for visual confirmation and scene groups, then a group-aware split.
 4. **Test split: 179 images, all labelled** (corrected 8 Nov after checking the data on disk). Earlier versions of this audit said `images/test` held unlabelled images, because of `move_unlabeled_to_test.py`, but that script reads `data/raw_datasets/images`, which doesn't exist, so it never ran on this layout. 179 = 10 % of 1,782, matching `split_final_dataset.py`. The test split was never used in training or for picking `best.pt`, so **it's a usable held-out set** (still subject to the leakage check). `eval_detector_test.py` keeps its labelled-only filter as a safety check.
 5. **Mixed plate sources and unreadable "plates".** The report's batch previews (pp. 35–36) show **Mexico City (CDMX) plates**, and the same plate (A-5613-C, J95-BCS) appears in several images. The raw "Traffic Dataset" has a separate *Blur Number Plate* class (1,149 boxes, versus 479 clear ones), and `remap_and_merge_datasets.py` merges it into Number_plate. So plate detection AP mixes readable and unreadable plates from two countries. → the OCR label set records `legible` and `country`, and OCR is scored on legible Indian plates.
 6. **Class imbalance:** Person has 104 train / 41 val instances, against 6,017 / 1,617 for Car. Report per-class AP and don't lean on the overall mean.
@@ -40,7 +40,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 
 | Goal | What | CPU cost | Status |
 |---|---|---|---|
-| 1 | Leakage check train↔val↔test (`tools/check_leakage.py`) | light, <1 min | script ready, run it |
+| 1 | Leakage check train↔val↔test (`tools/check_leakage.py`) | light, <1 min | **done: 82.6 % val / 86.0 % test leaked** |
+| 1b | Inspect pairs + scene groups (`tools/inspect_leakage.py`) → group-aware seeded re-split | light | inspect tool ready |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
@@ -53,7 +54,9 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 - [x] Audit written, shared `src/anpr` module, 29 unit tests passing, CI workflow, requirements fixed (branch `upgrade-v2`).
 - [x] CLAUDE.md added (repo map, data/weights locations, conventions)
 - [x] Repo checked on disk by Claude Code (8 Nov): best.pt present (87.7 MB), test 179/179 labelled, findings 4/12/17/18 corrected
-- [ ] Goal 1 run
+- [x] Goal 1 run (8 Nov): leakage confirmed, see docs/leakage/leakage_report.md
+- [x] Repo restructured (8 Nov): app/, scripts/, legacy/, results/, reports/, models/; dead scripts and old experiment folders removed
+- [ ] Goal 1b: inspect pairs, build group-aware split
 - [ ] Goal 2 labels
 - [ ] Goal 3 run
 - [ ] Goal 4 run

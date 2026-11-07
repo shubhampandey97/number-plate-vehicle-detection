@@ -11,7 +11,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 ## Report claims vs. what's verified
 | Report says | Reality (see `docs/audit.md`) |
 |---|---|
-| P 96.18 %, R 97.27 %, mAP@0.5 98.46 % | Real, but on the **val** split, which also chose `best.pt`. No test number yet. |
+| P 96.18 %, R 97.27 %, mAP@0.5 98.46 % | **Inflated by leakage.** Val split, which also chose `best.pt`, and **82.6 % of val / 86.0 % of test images have a near-duplicate in another split** (dHash ≤ 4; 47 exact copies). The current test split can't give an honest number either. |
 | "Performed OCR in real time", "Improved OCR accuracy" | OCR **never measured**. `outputs/logs/plate_logs.csv`: 0/38 reads are valid plates. |
 | "Tracking improved OCR consistency significantly" | Not measured. Each track is OCR'd once, on its first frame with conf ≥ 0.7. |
 | "Organizing train/validation/test splits" | Split unseeded (training itself used seed 0). Test = 179 images, all labelled, never used for training or checkpoint choice → usable held-out set. |
@@ -24,46 +24,48 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
   - `data/raw_datasets/{dataset, roboflow_dataset, Traffic Dataset, custom_dataset}`: the sources (Traffic Dataset includes videos, e.g. `Video11.mp4`).
   - `data/final_merged_datasets/{images,labels}/{train,val,test}` + `data.yaml`: the training set. Train 1,247 / val 356 / test 179 (all labelled). Files renamed `img_NNNNNN`, with **no mapping back to the source dataset**.
   - Other copies, unclear which fed the merge: `data/Traffic Dataset` (2,166 imgs, 18 videos), `data/raw` (509 imgs + an unexplained `best.pt`), `data/dataset` (198), `data/final_dataset` (115). `data/processed`, `data/samples` are empty.
-- Weights (git-ignored `*.pt`): **`runs/detect/runs1/detect/traffic_object_detector-2/weights/best.pt`** (YOLOv8l, 960 px, 150 epochs, 87.7 MB; same folder has last.pt and epoch0–140.pt at ~350 MB each, which could be deleted to save ~5 GB). Older runs in `runs/detect/runs/...` (YOLOv8n, stopped after 6 epochs) and `runs/detect/outputs/training/number_plate_detector` (1-class plate model, still used by `streamlit_app/utils.py`).
+- Weights (git-ignored `*.pt`): **`models/yolov8l_baseline.pt`** = the old `runs/detect/runs1/detect/traffic_object_detector-2/weights/best.pt` (YOLOv8l, 960 px, 150 epochs, 87.7 MB). All scripts load this path.
 - Final class ids (`remap_and_merge_datasets.py`): **0 Bike, 1 Bus, 2 Car, 3 Number_plate, 4 Person, 5 Truck, 6 Auto**. Prefer `model.names` over hard-coded lists.
 - **Privacy:** plate crops and plate text are personal data. Never commit images, crops, videos or real plate logs from new runs. Labels CSV (`eval/ocr_gt/ocr_gt.csv`) is OK to commit; crops are git-ignored.
 
-## Folder map
+## Folder map (restructured 8 Nov 2026)
 ```
-src/anpr/                  NEW shared library (use this, don't copy-paste OCR code again)
+src/anpr/                  shared library (use this, don't copy-paste OCR code again)
   plate_text.py            clean / is_valid (Indian formats + BH) / correct (O<->0, I<->1 …, India-only)
                            / join_lines (two-line plates) / cer
   ocr.py                   crop_box, preprocess(variant: gray|otsu|adaptive|clahe, fixed height 96), read_plate(reader, crop)
-tools/                     NEW evaluation scripts (CLI, argparse, no hard-coded paths)
-  check_leakage.py         dHash near-duplicate search across train/val/test (CPU-light)
-  make_ocr_labelset.py     crops GT plate boxes → eval/ocr_gt/crops + ocr_gt.csv to hand-label
+tools/                     evaluation CLIs (argparse, paths relative to repo root)
+  check_leakage.py         dHash near-duplicates ACROSS splits -> docs/leakage/leakage_report.md + cross_split_pairs.csv
+  inspect_leakage.py       contact sheets of pairs (git-ignored jpgs) + scene groups (union-find, any split) -> groups.csv
+  make_ocr_labelset.py     crops GT plate boxes -> eval/ocr_gt/crops + ocr_gt.csv to hand-label
   eval_ocr.py              legacy vs new OCR: exact match, CER, read rate, precision; by lines/height/condition/country
-  eval_detector_test.py    detector metrics on LABELLED test images only (heavy on CPU)
-tests/                     pytest (29 tests): plate_text, ocr (fake reader), leakage
-docs/audit.md              findings + goal plan + Status checklist  ← source of truth for progress
-
-src/training/train.py      YOLOv8l training config (GPU, device=0)
-src/inference/             predict.py (batch images), predict_and_crop.py (save crops)
-src/ocr/                   plate_ocr.py (single image), video_ocr.py (video, OCR every 5 frames)   [legacy, duplicated OCR]
-src/tracking/vehicle_tracking.py   ByteTrack + OCR once per track, imgsz=640 (!)                 [legacy]
-src/analytics/traffic_analytics.py tracking + counts + writes outputs/logs/plate_logs.csv, imgsz=640 (!) [legacy]
-src/detection/, src/utils/ empty
-src/preprocessing/         enhancement/normalization/augmentation demos, ocr_preprocessing.py (adaptive threshold variant)
-src/visualization/         annotation drawing
-src/dataset_engineering/   conversion (COCO→YOLO), merging (remap_and_merge = the real one), cleaning,
-                           splitting (split_final_dataset = the real one, UNSEEDED), validation, analysis
-eda/ + eda_report/         class frequency, image quality, lighting/weather, augmentation previews, stats
-streamlit_app/app.py       dashboard (Image / Video / Live modes), loads traffic_object_detector-2
-streamlit_app/utils.py     loads the OLD 1-class plate model, different preprocessing
-runs/detect/runs1/detect/traffic_object_detector-2/   results.csv, curves, confusion matrix, batch previews
-outputs/                   plate_logs.csv (old run), dataset engineering reports
-main.py                    empty
+  eval_detector_test.py    detector metrics on labelled test images (default weights models/yolov8l_baseline.pt)
+tests/                     pytest (31 tests); CI in .github/workflows/ci.yml
+app/streamlit_app.py       dashboard (Image / Video / Live), loads models/yolov8l_baseline.pt
+scripts/train.py           YOLOv8l training config (GPU, device=0), writes runs/train/ (git-ignored)
+scripts/data_prep/         analysis, cleaning, conversion (COCO->YOLO), merging (remap_and_merge_datasets = the real merge),
+                           splitting (split_final_dataset = the real split, UNSEEDED), validation
+scripts/eda/               class frequency, image quality, lighting/weather, augmentation previews, annotations, stats
+legacy/                    old pipeline, replaced step by step by src/anpr (see legacy/README.md)
+  ocr/plate_ocr.py, ocr/video_ocr.py, tracking/vehicle_tracking.py (imgsz 640), analytics/traffic_analytics.py (imgsz 640),
+  inference/predict.py, inference/predict_and_crop.py
+results/baseline_yolov8l/  args.yaml, results.csv, curves, confusion matrices, val batch previews, plate_logs_legacy.csv
+reports/eda/, reports/dataset_engineering/   EDA + dataset reports (moved from eda_report/ and outputs/)
+docs/                      audit.md (source of truth for progress), leakage/, results/
+models/                    weights, git-ignored (models/README.md)
+data/                      datasets, git-ignored
+runs/, outputs/            local training runs / script outputs, git-ignored
 ```
-Legacy scripts load models at import time, use Windows `\` relative paths and must be run from the repo root.
+Deleted on 8 Nov (still in git history): main.py (empty), streamlit_app/utils.py (old 1-class model), src/preprocessing/* (demo
+scripts), src/visualization (duplicate of scripts/eda/visualize_annotations.py), eda/ocr_ground_truth.py (blank labels),
+superseded data scripts (split_dataset, merge_yolo_datasets, move_unlabeled_to_test, remove_unlabeled_images, validate_dataset),
+old experiment folders (runs/detect/runs, runs/detect/outputs = 1-class plate model, aborted traffic_object_detector),
+train_batch*.jpg, demo jpgs in outputs/.
+Run every script from the repo root.
 
 ## Environment and how to run
-- Windows, VS Code + Claude Code. The PC is CPU-only right now, and the TB project may be training in another window. **Ask before starting anything heavy** (YOLO inference over a whole split, EasyOCR over hundreds of crops, training). Long runs go in a separate PowerShell window with logging, e.g. `cmd /c "python tools\eval_ocr.py > logs\eval_ocr.log 2>&1"`.
-- Don't reuse the TB conda env (TensorFlow). Use a separate env for this repo, e.g. `anpr_env`: install torch (CPU or cu126 wheel, see the `requirements.txt` header), then `pip install -r requirements.txt -r requirements-dev.txt`. Set `PYTHONNOUSERSITE=1`.
+- Windows, VS Code + Claude Code. TB training is finished, so the machine is free. Still **ask before starting anything long** (YOLO inference over a whole split, EasyOCR over hundreds of crops, training). Long runs go in a separate PowerShell window with logging, e.g. `cmd /c "python tools\eval_ocr.py > logs\eval_ocr.log 2>&1"`.
+- Env: `anpr_env` (`conda env create -f environment.yml`, Python 3.11), then torch (cu126 wheel if `nvidia-smi` works, else CPU; see `requirements.txt` header), then `pip install -r requirements.txt -r requirements-dev.txt`. Set `PYTHONNOUSERSITE=1`. The baseline was trained with `device=0` on CUDA, so this PC probably has an NVIDIA GPU: check.
 - Tests: `pytest -q tests`. Lint: `ruff check src/anpr tools tests`. CI: `.github/workflows/ci.yml` runs both on push.
 - The old `requirements.txt` was a UTF-16 conda export and couldn't be installed; it was replaced.
 
@@ -76,6 +78,7 @@ Legacy scripts load models at import time, use Windows `\` relative paths and mu
 - Commit messages end with the co-author line. Work on `upgrade-v2`; open a PR to `main` per finished goal.
 
 ## Current state (8 Nov 2026)
-- Done: audit, `src/anpr`, tools, 29 tests, CI, requirements fixed, CLAUDE.md; audit corrected after the on-disk check (test fully labelled, 640 in two scripts, provenance lost).
-- Next for Shubham (CPU-light): `python tools/check_leakage.py`, then `python tools/make_ocr_labelset.py --split test`, then hand-label ~200 crops (gt_text, legible, lines, condition, country).
-- Then: `eval_ocr.py` → `eval_detector_test.py` (after TB training) → re-split by source if there is leakage → wire `anpr.ocr` into the tracker and app, add multi-frame voting, run the tracker at 960 → ONNX/FP16 benchmark → FastAPI + Docker → README results table + model card.
+- Done: audit (+ corrections after the on-disk check), `src/anpr`, tools, 31 tests, CI, requirements fixed, CLAUDE.md, repo restructured.
+- **Goal 1 result:** leakage confirmed at scale: 4,749 cross-split pairs (47 exact); val 294/356 (82.6 %), test 154/179 (86.0 %) have a near-duplicate in another split. Val mAP 0.985 is not trustworthy, and the current test split isn't held out in practice.
+- Next: `python tools/inspect_leakage.py` → look at `docs/leakage/pairs_*.jpg` to confirm the pairs are the same scene → use `docs/leakage/groups.csv` to build a **group-aware split** (whole scene groups go to one split, seeded) → retrain on GPU → evaluate on the new test split.
+- In parallel (no GPU needed): OCR label set from the new test split once it exists, then `eval_ocr.py`.

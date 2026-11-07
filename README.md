@@ -150,83 +150,25 @@ Interactive dashboard with:
 
 # 📂 Project Structure
 
+> **Upgrade in progress (branch `upgrade-v2`).** The original metrics are being re-checked: see
+> [`docs/audit.md`](docs/audit.md). Validation and test images turned out to have near-duplicates in
+> train ([`docs/leakage/leakage_report.md`](docs/leakage/leakage_report.md)), so the numbers below are
+> validation-only and optimistic until the re-split and re-evaluation are done.
+
 ```text
-number-plate-vehicle-detection/
-│
-├── data/
-│   ├── raw_datasets/
-│   └── final_merged_datasets/
-│
-├── eda/
-│   ├── dataset_stats.py
-│   ├── dataset_augmentation.py
-│   ├── image_quality_analysis.py
-│   ├── lighting_weather_analysis.py
-│   └── visualize_annotations.py
-│
-├── outputs/
-│   ├── logs/
-│   ├── ocr_result.jpg
-│   ├── tracked_output.mp4
-│   └── traffic_analytics_output.mp4
-│
-├── runs/
-│
-├── src/
-│   │
-│   ├── dataset_engineering/
-│   │   │
-│   │   ├── analysis/
-│   │   │   ├── analyze_dataset.py
-│   │   │   ├── analyze_classes.py
-│   │   │   └── detect_dataset_formats.py
-│   │   │
-│   │   ├── cleaning/
-│   │   │   ├── remove_unmatched_labels.py
-│   │   │   ├── remove_unlabeled_images.py
-│   │   │   └── move_unlabeled_to_test.py
-│   │   │
-│   │   ├── conversion/
-│   │   │   └── convert_coco_to_yolo.py
-│   │   │
-│   │   ├── merging/
-│   │   │   ├── merge_yolo_datasets.py
-│   │   │   └── remap_and_merge_datasets.py
-│   │   │
-│   │   ├── splitting/
-│   │   │   ├── split_dataset.py
-│   │   │   └── split_final_dataset.py
-│   │   │
-│   │   └── validation/
-│   │       ├── validate_dataset.py
-│   │       ├── validate_final_dataset.py
-│   │       └── check_dataset_pairs.py
-│   │
-│   │
-│   ├── training/
-│   │   └── train.py
-│   │
-│   ├── inference/
-│   │   ├── detect_image.py
-│   │   └── detect_video.py
-│   │
-│   ├── ocr/
-│   │   ├── plate_ocr.py
-│   │   └── video_ocr.py
-│   │
-│   ├── tracking/
-│   │   └── vehicle_tracking.py
-│   │
-│   ├── analytics/
-│       └── traffic_analytics.py
-│
-├── streamlit_app/
-│   └── app.py
-│
-├── requirements.txt
-├── environment.yml
-├── README.md
-└── .gitignore
+src/anpr/            shared library: plate-text rules (Indian formats, OCR fixes), one OCR pipeline
+tools/               evaluation CLIs: leakage check/inspection, OCR label set + eval, detector test eval
+tests/               pytest unit tests (run in CI)
+app/                 Streamlit dashboard (image / video / webcam)
+scripts/train.py     YOLOv8l training config
+scripts/data_prep/   dataset engineering: analysis, cleaning, COCO->YOLO, merging/remapping, split, validation
+scripts/eda/         EDA scripts (class frequency, image quality, lighting, augmentation, annotations)
+legacy/              original OCR / tracking / analytics scripts, being replaced by src/anpr
+results/             curated results per model (baseline_yolov8l: curves, confusion matrix, results.csv)
+reports/             EDA and dataset-engineering reports
+docs/                audit, leakage reports, evaluation results
+models/              weights (git-ignored), see models/README.md
+data/                datasets (git-ignored)
 ```
 
 ---
@@ -399,7 +341,7 @@ The analytics system provides:
 Run the interactive dashboard:
 
 ```bash
-streamlit run streamlit_app/app.py
+streamlit run app/streamlit_app.py
 ```
 
 The dashboard supports:
@@ -416,7 +358,7 @@ The dashboard supports:
 Run real-time video inference:
 
 ```bash
-python src/ocr/video_ocr.py
+python legacy/ocr/video_ocr.py
 ```
 
 ---
@@ -426,7 +368,7 @@ python src/ocr/video_ocr.py
 Run tracking pipeline:
 
 ```bash
-python src/tracking/vehicle_tracking.py
+python legacy/tracking/vehicle_tracking.py
 ```
 
 ---
@@ -436,7 +378,7 @@ python src/tracking/vehicle_tracking.py
 Run analytics system:
 
 ```bash
-python src/analytics/traffic_analytics.py
+python legacy/analytics/traffic_analytics.py
 ```
 
 ---
@@ -482,7 +424,7 @@ python training/train.py
 # 5️⃣ Run Streamlit Dashboard
 
 ```bash
-streamlit run streamlit_app/app.py
+streamlit run app/streamlit_app.py
 ```
 
 ---

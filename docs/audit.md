@@ -35,7 +35,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 16. **Hard-coded Windows paths** (`D:\Guvi\...`). `main.py` is empty, `src/detection/` and `src/utils/` are empty. No tests.
 17. **The merge included the same data 2–3 times (found 8 Nov from the leakage pairs).** Files `img_000180–000934` are `.jpg` and `img_000935–001666` are `.png` copies of mostly the same frames (identical-hash pairs sit exactly 656 or 732 indices apart), and `img_000000–089` (jpg), `000090–179` (png), `000180+` (jpg) repeat the same ~90 images (`raw_datasets/dataset` and `roboflow_dataset` are the same 6-class dataset). 801 cross-split pairs have dHash distance 0. So the old val/test scores were partly computed on copies of training images. → `tools/make_group_split.py` drops copies (distance 0) and splits by scene.
 18. **Source of each image is lost.** `remap_and_merge_datasets.py` renamed everything to `img_NNNNNN` and saved no mapping. The raw folders now hold about 1,236 label files (923 + 115 + 99 + 99), but the merged set has 1,782 labelled images, so the raw folders changed after the merge, or the merge used another copy (`data/Traffic Dataset` 2,166 images, `data/raw` 509, `data/dataset` 198). → Goal 5 (re-split by source) first needs **provenance recovered by matching image hashes** against every copy under `data/`. `data/raw/best.pt` is unexplained.
-19. Training itself used `seed: 0` (args.yaml); only the split script is unseeded.
+19. **Mixed label formats:** some label lines are polygons (`cls x1 y1 x2 y2 …`), not boxes (233 in v2 val vs 1,022 boxes). Ultralytics converts them, but any script reading `parts[1:5]` as a box gets a wrong box. → `anpr.labels.parse_line` handles both; `make_ocr_labelset.py` uses it.
+20. Training itself used `seed: 0` (args.yaml); only the split script is unseeded.
 
 ## Plan
 

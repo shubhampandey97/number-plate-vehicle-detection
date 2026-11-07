@@ -23,9 +23,13 @@ from __future__ import annotations
 import argparse
 import csv
 import random
+import sys
 from pathlib import Path
 
 import cv2
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from anpr.labels import parse_line  # noqa: E402
 
 EXTS = (".jpg", ".jpeg", ".png")
 
@@ -59,9 +63,9 @@ def main():
     candidates = []
     for lbl in sorted(lbl_dir.glob("*.txt")):
         for k, line in enumerate(lbl.read_text().splitlines()):
-            parts = line.split()
-            if len(parts) >= 5 and int(float(parts[0])) == a.plate_class:
-                candidates.append((lbl.stem, k, *map(float, parts[1:5])))
+            box = parse_line(line)          # handles box and polygon lines
+            if box and box[0] == a.plate_class:
+                candidates.append((lbl.stem, k, *box[1:]))
     random.Random(a.seed).shuffle(candidates)
 
     rows = []

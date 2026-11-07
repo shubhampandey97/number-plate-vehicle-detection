@@ -9,6 +9,7 @@ Hyper-parameters otherwise follow the original baseline run
 
 Usage (repo root, anpr_env):
     python scripts/train.py --smoke          # ~2 min: 1 epoch on 10% of data, checks memory + speed
+                                             # full-epoch time ~= 10 x the smoke run's training time
     python scripts/train.py                  # full run -> runs/train/v2_yolov8s_960/
     python scripts/train.py --model yolov8l.pt --imgsz 960 --batch 8 --amp   # on a bigger GPU (Kaggle/Colab)
 """
@@ -46,6 +47,7 @@ def main():
     ap.add_argument("--device", default="0")
     ap.add_argument("--amp", action="store_true", help="enable mixed precision (only on GPUs with fast FP16)")
     ap.add_argument("--name", default=None)
+    ap.add_argument("--cache", action="store_true", help="keep decoded images in RAM (faster loading; ~1.5 GB at 960)")
     ap.add_argument("--smoke", action="store_true", help="1 epoch on 10%% of the data to test speed/memory")
     a = ap.parse_args()
 
@@ -57,12 +59,13 @@ def main():
     model.train(
         data=str(data), epochs=1 if a.smoke else a.epochs, fraction=0.1 if a.smoke else 1.0,
         imgsz=a.imgsz, batch=a.batch, device=a.device, workers=a.workers, patience=a.patience,
-        amp=a.amp, cache=False, seed=0, deterministic=True, pretrained=True,
+        amp=a.amp, cache="ram" if a.cache else False, seed=0, deterministic=True, pretrained=True,
         optimizer="AdamW", lr0=0.0005, lrf=0.01, weight_decay=0.0005, momentum=0.937, cos_lr=True,
         hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, degrees=10.0, translate=0.1, scale=0.5, shear=2.0,
         perspective=0.0005, flipud=0.0, fliplr=0.5, mosaic=1.0, mixup=0.15, copy_paste=0.1,
         close_mosaic=10, val=True, save=True, save_period=-1, plots=True, verbose=True,
-        project="runs/train", name=name, exist_ok=a.smoke,
+        # absolute project path: a relative one gets nested under Ultralytics' runs_dir (runs/detect/runs/train)
+        project=str(Path("runs/train").resolve()), name=name, exist_ok=a.smoke,
     )
 
 

@@ -33,6 +33,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 src/anpr/                  shared library (use this, don't copy-paste OCR code again)
   plate_text.py            clean / is_valid (Indian formats + BH) / correct (O<->0, I<->1 …, India-only)
                            / join_lines (two-line plates) / cer
+  labels.py                parse_line: YOLO box OR polygon line -> (cls, cx, cy, w, h). Labels mix both formats!
   ocr.py                   crop_box, preprocess(variant: gray|otsu|adaptive|clahe, fixed height 96), read_plate(reader, crop)
 tools/                     evaluation CLIs (argparse, paths relative to repo root)
   check_leakage.py         dHash near-duplicates ACROSS splits -> docs/leakage/leakage_report.md + cross_split_pairs.csv
@@ -42,7 +43,7 @@ tools/                     evaluation CLIs (argparse, paths relative to repo roo
   make_ocr_labelset.py     crops GT plate boxes -> eval/ocr_gt/crops + ocr_gt.csv to hand-label
   eval_ocr.py              legacy vs new OCR: exact match, CER, read rate, precision; by lines/height/condition/country
   eval_detector_test.py    detector metrics on labelled test images (default weights models/yolov8l_baseline.pt)
-tests/                     pytest (32 tests); CI in .github/workflows/ci.yml
+tests/                     pytest (37 tests); CI in .github/workflows/ci.yml
 app/streamlit_app.py       dashboard (Image / Video / Live), loads models/yolov8l_baseline.pt
 scripts/train.py           YOLOv8l training config (GPU, device=0), writes runs/train/ (git-ignored)
 scripts/data_prep/         analysis, cleaning, conversion (COCO->YOLO), merging (remap_and_merge_datasets = the real merge),
@@ -85,4 +86,5 @@ Run every script from the repo root.
 - **Split v2** (`data/final_v2`, git-ignored; mapping in `docs/leakage/split_v2.csv`): train 629 / val 151 / test 123, 0 cross-split near-duplicates. Use this for all new training and evaluation. `data/final_merged_datasets` is kept only as the source.
 - Env: `anpr_env`, torch 2.11.0+cu126, GPU = GeForce MX250 4 GB → train YOLOv8s @960, batch 4, **amp off** (`scripts/train.py`). YOLOv8l only on Kaggle/Colab.
 - The baseline `models/yolov8l_baseline.pt` was trained on copies of most v2 val/test images, so its score on v2 test is NOT a fair number (report it only as "contaminated").
+- Local speed (smoke, 8 Nov): YOLOv8s @960 batch 4 = 7.0 s/it, GPU_mem 4.01 G (full) → ~19 min/epoch → too slow; testing batch 2 + RAM cache and 640 px. Rule: full epoch ≈ 10 × smoke training time.
 - Next: `python scripts/train.py --smoke` → full run overnight → `python tools/eval_detector_test.py --weights runs/train/v2_yolov8s_960/weights/best.pt` → copy curated results to `results/v2_yolov8s_960/` → OCR label set from v2 test (`make_ocr_labelset.py --root data/final_v2`).

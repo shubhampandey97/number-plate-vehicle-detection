@@ -10,7 +10,10 @@ variants. Reports:
   read rate             (non-empty output)
   precision of output   (exact-match among plates the system *did* output -
                          a wrong plate in a log is worse than no plate)
-  breakdown by lines (1 vs 2), plate height bucket and condition tag
+  breakdown by lines (1 vs 2), plate height bucket, condition tag, country
+
+The headline table uses Indian plates only (country=IN or blank), because the
+format corrector is India-only and would reject Mexican CDMX plates by design.
 
 EasyOCR on CPU: roughly 0.2-0.5 s per crop per variant. 200 crops x 5 configs
 is a few minutes; run it with --variants otsu first if the CPU is busy.
@@ -93,6 +96,7 @@ def main():
             crop = cv2.imread(str(crops_dir / r["crop"]))
             pred = fn(crop) if crop is not None else ""
             rec = {"gt": clean(r["gt_text"]), "pred": pred, "lines": r.get("lines", "") or "?",
+                   "country": (r.get("country", "") or "IN").strip().upper(),
                    "h": h_bucket(int(r["box_h"])), "cond": r.get("condition", "") or "untagged"}
             recs.append(rec)
             per_crop.append({"config": name, "crop": r["crop"], **rec})
@@ -101,7 +105,9 @@ def main():
             groups[f"lines={rec['lines']}"].append(rec)
             groups[f"height {rec['h']}"].append(rec)
             groups[f"cond={rec['cond']}"].append(rec)
-        results[name] = {"all": summarise(recs), **{k: summarise(v) for k, v in sorted(groups.items())}}
+            groups[f"country={rec['country']}"].append(rec)
+        indian = [rec for rec in recs if rec["country"] == "IN"]
+        results[name] = {"all": summarise(indian) or summarise(recs), "all_countries": summarise(recs), **{k: summarise(v) for k, v in sorted(groups.items())}}
         s = results[name]["all"]
         print(f"{name:28s} exact {s['exact']:.3f}  CER {s['cer']:.3f}  "
               f"read {s['read_rate']:.3f}  precision {s['precision']:.3f}")
@@ -111,7 +117,8 @@ def main():
         w = csv.DictWriter(f, fieldnames=list(per_crop[0].keys()))
         w.writeheader()
         w.writerows(per_crop)
-    md = [f"# OCR evaluation ({len(rows)} legible hand-labelled plates)", "",
+    n_in = sum((r.get("country", "") or "IN").strip().upper() == "IN" for r in rows)
+    md = [f"# OCR evaluation: {n_in} legible Indian plates ({len(rows)} legible in total)", "",
           "| config | exact match | CER | read rate | precision |", "|---|---|---|---|---|"]
     for name, res in results.items():
         s = res["all"]

@@ -11,6 +11,8 @@ Columns you fill in:
   legible   y / n  (n = a human cannot read it either; excluded from accuracy)
   lines     1 / 2  (two-line plates are common on bikes and autos)
   condition free text tag, e.g. day, night, blur, angle, small
+  country   IN / MX / other  (the merged data also contains Mexico City
+            "CDMX" plates; the plate-format corrector is India-only)
 
 Usage:
     python tools/make_ocr_labelset.py --root data/final_merged_datasets \
@@ -79,7 +81,7 @@ def main():
         name = f"{stem}_p{k}.png"
         cv2.imwrite(str(crops_dir / name), img[y1:y2, x1:x2])
         rows.append({"crop": name, "source_image": p.name, "box_w": x2 - x1, "box_h": y2 - y1,
-                     "gt_text": "", "legible": "", "lines": "", "condition": ""})
+                     "gt_text": "", "legible": "", "lines": "", "condition": "", "country": ""})
 
     if not rows:
         raise SystemExit(f"No Number_plate boxes found in {lbl_dir}")
@@ -88,7 +90,7 @@ def main():
         w.writeheader()
         w.writerows(rows)
     print(f"{len(candidates)} plate boxes in {a.split}; wrote {len(rows)} crops to {crops_dir}")
-    print(f"Now fill gt_text / legible / lines / condition in {out_csv}")
+    print(f"Now fill gt_text / legible / lines / condition / country in {out_csv}")
 
 
 if __name__ == "__main__":

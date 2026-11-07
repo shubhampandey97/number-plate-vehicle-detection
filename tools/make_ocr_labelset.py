@@ -40,7 +40,7 @@ def find_image(img_dir: Path, stem: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", type=Path, default=Path("data/final_merged_datasets"))
+    ap.add_argument("--root", type=Path, default=Path("data/final_v2"))
     ap.add_argument("--split", default="test")
     ap.add_argument("--plate-class", type=int, default=3, help="Number_plate class id")
     ap.add_argument("--out", type=Path, default=Path("eval/ocr_gt"))

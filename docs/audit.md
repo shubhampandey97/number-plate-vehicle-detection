@@ -43,8 +43,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 |---|---|---|---|
 | 1 | Leakage check train↔val↔test (`tools/check_leakage.py`) | light, <1 min | **done: 82.6 % val / 86.0 % test leaked** |
 | 1b | Inspect pairs + scene groups (`tools/inspect_leakage.py`) | light | **done**: 588 scenes, largest 4.6 %; contact sheets show same frames / consecutive frames of fixed cameras |
-| 1c | Deduplicated, group-aware, seeded split v2 (`tools/make_group_split.py` → `data/final_v2`) + re-check | light | tool ready |
-| 1d | Retrain YOLOv8 on split v2 (Kaggle/Colab GPU; local GPU is an MX250 4 GB), evaluate on v2 test | GPU | todo |
+| 1c | Deduplicated, group-aware, seeded split v2 (`tools/make_group_split.py` → `data/final_v2`) + re-check | light | **done**: 879/1,782 were copies → 903 unique images; train 629 / val 151 / test 123; 0 cross-split pairs |
+| 1d | Retrain on split v2: YOLOv8s @960 locally (MX250 4 GB, amp off, `scripts/train.py`); YOLOv8l later on Kaggle/Colab if needed; evaluate on v2 test | GPU | running |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
@@ -60,7 +60,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] Goal 1 run (8 Nov): leakage confirmed, see docs/leakage/leakage_report.md
 - [x] Repo restructured (8 Nov): app/, scripts/, legacy/, results/, reports/, models/; dead scripts and old experiment folders removed
 - [x] Goal 1b (8 Nov): 588 scenes (201 singletons, 12 of 21–100 images, largest 82 = 4.6 %); pairs confirmed visually (identical frames incl. jpg/png copies; consecutive frames of the same fixed cameras); weights moved to models/
-- [ ] Goal 1c: run make_group_split.py, re-run check_leakage on data/final_v2 (expect 0)
+- [x] Goal 1c (8 Nov): split v2 built. **879 of 1,782 images (49 %) were duplicate copies**; 903 unique images in 588 scenes; train 629 / val 151 / test 123 (69.7/16.7/13.6 %); check_leakage on v2: 0 cross-split pairs. Boxes (train/val/test): Bike 775/151/186, Bus 197/39/50, Car 2385/439/543, Number_plate 1151/225/286, Person 56/18/24, Truck 257/49/60, Auto 552/101/137.
+- [ ] Goal 1d: train YOLOv8s on v2, evaluate on v2 test
 - [ ] Goal 2 labels
 - [ ] Goal 3 run
 - [ ] Goal 4 run

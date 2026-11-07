@@ -80,8 +80,9 @@ Run every script from the repo root.
 - Commit messages end with the co-author line. Work on `upgrade-v2`; open a PR to `main` per finished goal.
 
 ## Current state (8 Nov 2026)
-- Done: audit, `src/anpr`, tools, 32 tests, CI, requirements, CLAUDE.md, restructure, leakage check + inspection.
-- **Leakage:** val 82.6 % / test 86.0 % near-duplicated in other splits. Cause: the merge contains the same frames 2–3 times (jpg + png copies; `dataset` = `roboflow_dataset`) **plus** consecutive frames from fixed traffic cameras. 588 scenes, largest 4.6 %.
-- Env: `anpr_env` works, torch 2.11.0+cu126, GPU = GeForce MX250 4 GB (inference/OCR OK; training YOLOv8l@960 → use Kaggle/Colab).
-- Weights: `models/yolov8l_baseline.pt` in place.
-- Next: `python tools/make_group_split.py` → `python tools/check_leakage.py --root data/final_v2 --out docs/leakage/v2` (expect 0) → commit docs/leakage/{groups.csv,groups_report.md,split_v2.csv,split_v2_report.md,v2/} → retrain on v2 (Kaggle/Colab notebook) → evaluate on v2 test → OCR label set from v2 test.
+- Done: audit, `src/anpr`, tools, 32 tests, CI, requirements, CLAUDE.md, restructure, leakage check + inspection, **split v2**.
+- **Leakage cause:** the merge held the same frames 2–3 times (jpg + png copies; `dataset` = `roboflow_dataset`) plus consecutive frames from fixed cameras. **879 of 1,782 images were copies → 903 unique.**
+- **Split v2** (`data/final_v2`, git-ignored; mapping in `docs/leakage/split_v2.csv`): train 629 / val 151 / test 123, 0 cross-split near-duplicates. Use this for all new training and evaluation. `data/final_merged_datasets` is kept only as the source.
+- Env: `anpr_env`, torch 2.11.0+cu126, GPU = GeForce MX250 4 GB → train YOLOv8s @960, batch 4, **amp off** (`scripts/train.py`). YOLOv8l only on Kaggle/Colab.
+- The baseline `models/yolov8l_baseline.pt` was trained on copies of most v2 val/test images, so its score on v2 test is NOT a fair number (report it only as "contaminated").
+- Next: `python scripts/train.py --smoke` → full run overnight → `python tools/eval_detector_test.py --weights runs/train/v2_yolov8s_960/weights/best.pt` → copy curated results to `results/v2_yolov8s_960/` → OCR label set from v2 test (`make_ocr_labelset.py --root data/final_v2`).

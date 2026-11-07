@@ -45,7 +45,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 | 1 | Leakage check train↔val↔test (`tools/check_leakage.py`) | light, <1 min | **done: 82.6 % val / 86.0 % test leaked** |
 | 1b | Inspect pairs + scene groups (`tools/inspect_leakage.py`) | light | **done**: 588 scenes, largest 4.6 %; contact sheets show same frames / consecutive frames of fixed cameras |
 | 1c | Deduplicated, group-aware, seeded split v2 (`tools/make_group_split.py` → `data/final_v2`) + re-check | light | **done**: 879/1,782 were copies → 903 unique images; train 629 / val 151 / test 123; 0 cross-split pairs |
-| 1d | Retrain on split v2: YOLOv8s @960 locally (MX250 4 GB, amp off, `scripts/train.py`); YOLOv8l later on Kaggle/Colab if needed; evaluate on v2 test | GPU | running |
+| 1d | Retrain on split v2 on Kaggle (`notebooks/kaggle_train_v2.ipynb`): YOLOv8s and YOLOv8l @960, same hyper-parameters as the baseline; val + held-out test metrics | GPU (Kaggle) | notebook ready |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |

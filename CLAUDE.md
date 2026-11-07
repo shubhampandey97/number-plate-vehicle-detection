@@ -52,6 +52,7 @@ scripts/eda/               class frequency, image quality, lighting/weather, aug
 legacy/                    old pipeline, replaced step by step by src/anpr (see legacy/README.md)
   ocr/plate_ocr.py, ocr/video_ocr.py, tracking/vehicle_tracking.py (imgsz 640), analytics/traffic_analytics.py (imgsz 640),
   inference/predict.py, inference/predict_and_crop.py
+notebooks/kaggle_train_v2.ipynb  Kaggle GPU: trains YOLOv8s + YOLOv8l @960 on split v2, val+test metrics, zips results
 results/baseline_yolov8l/  args.yaml, results.csv, curves, confusion matrices, val batch previews, plate_logs_legacy.csv
 reports/eda/, reports/dataset_engineering/   EDA + dataset reports (moved from eda_report/ and outputs/)
 docs/                      audit.md (source of truth for progress), leakage/, results/
@@ -86,5 +87,6 @@ Run every script from the repo root.
 - **Split v2** (`data/final_v2`, git-ignored; mapping in `docs/leakage/split_v2.csv`): train 629 / val 151 / test 123, 0 cross-split near-duplicates. Use this for all new training and evaluation. `data/final_merged_datasets` is kept only as the source.
 - Env: `anpr_env`, torch 2.11.0+cu126, GPU = GeForce MX250 4 GB → train YOLOv8s @960, batch 4, **amp off** (`scripts/train.py`). YOLOv8l only on Kaggle/Colab.
 - The baseline `models/yolov8l_baseline.pt` was trained on copies of most v2 val/test images, so its score on v2 test is NOT a fair number (report it only as "contaminated").
+- **Training moved to Kaggle** (8 Nov): local MX250 too slow (YOLOv8s@960 ≈ 17–19 min/epoch even at batch 2 + RAM cache). Upload `data/final_v2` as a private Kaggle dataset, run `notebooks/kaggle_train_v2.ipynb`, download `anpr_v2_results.zip`, unpack runs to `results/v2_yolov8s_960/`, `results/v2_yolov8l_960/` and weights to `models/`.
 - Local speed (smoke, 8 Nov): YOLOv8s @960 batch 4 = 7.0 s/it, GPU_mem 4.01 G (full) → ~19 min/epoch → too slow; testing batch 2 + RAM cache and 640 px. Rule: full epoch ≈ 10 × smoke training time.
 - Next: `python scripts/train.py --smoke` → full run overnight → `python tools/eval_detector_test.py --weights runs/train/v2_yolov8s_960/weights/best.pt` → copy curated results to `results/v2_yolov8s_960/` → OCR label set from v2 test (`make_ocr_labelset.py --root data/final_v2`).

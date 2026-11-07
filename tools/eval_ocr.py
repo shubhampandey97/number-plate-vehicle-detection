@@ -1,0 +1,130 @@
+"""Score OCR on the hand-labelled crops from make_ocr_labelset.py.
+
+Compares the ORIGINAL pipeline (Otsu, keep the single best fragment, no
+format correction) against the new one (fixed-height resize, join all
+fragments in reading order, Indian-format correction), across preprocessing
+variants. Reports:
+
+  exact-match accuracy  (whole plate right - what ANPR actually needs)
+  CER                   (character error rate)
+  read rate             (non-empty output)
+  precision of output   (exact-match among plates the system *did* output -
+                         a wrong plate in a log is worse than no plate)
+  breakdown by lines (1 vs 2), plate height bucket and condition tag
+
+EasyOCR on CPU: roughly 0.2-0.5 s per crop per variant. 200 crops x 5 configs
+is a few minutes; run it with --variants otsu first if the CPU is busy.
+
+Usage:
+    python tools/eval_ocr.py --gt eval/ocr_gt/ocr_gt.csv --out docs/results
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import re
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+import cv2
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from anpr.ocr import ALLOWLIST, preprocess, read_plate  # noqa: E402
+from anpr.plate_text import cer, clean  # noqa: E402
+
+
+def legacy_read(reader, crop):
+    """Exact copy of the original repo logic (4x resize, Otsu, best fragment)."""
+    img = cv2.resize(crop, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+    g = cv2.bilateralFilter(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 11, 17, 17)
+    _, th = cv2.threshold(g, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    best, score = "", 0.0
+    for _, t, s in reader.readtext(th, allowlist=ALLOWLIST, paragraph=False, detail=1):
+        t = re.sub(r"[^A-Z0-9]", "", t.upper())
+        if s >= 0.30 and len(t) >= 4 and s > score:
+            best, score = t, s
+    return best
+
+
+def h_bucket(h: int) -> str:
+    return "<20px" if h < 20 else "20-40px" if h < 40 else ">=40px"
+
+
+def summarise(recs):
+    n = len(recs)
+    if n == 0:
+        return {}
+    out = [r for r in recs if r["pred"]]
+    return {"n": n,
+            "exact": sum(r["pred"] == r["gt"] for r in recs) / n,
+            "cer": sum(cer(r["pred"], r["gt"]) for r in recs) / n,
+            "read_rate": len(out) / n,
+            "precision": (sum(r["pred"] == r["gt"] for r in out) / len(out)) if out else 0.0}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--gt", type=Path, default=Path("eval/ocr_gt/ocr_gt.csv"))
+    ap.add_argument("--variants", default="otsu,gray,clahe,adaptive")
+    ap.add_argument("--gpu", action="store_true")
+    ap.add_argument("--out", type=Path, default=Path("docs/results"))
+    a = ap.parse_args()
+
+    rows = [r for r in csv.DictReader(open(a.gt))
+            if clean(r["gt_text"]) and r.get("legible", "y").strip().lower() != "n"]
+    if not rows:
+        raise SystemExit("No labelled, legible rows in the CSV yet.")
+    crops_dir = a.gt.parent / "crops"
+
+    import easyocr
+    reader = easyocr.Reader(["en"], gpu=a.gpu)
+
+    configs = {"legacy (original repo)": lambda c: legacy_read(reader, c)}
+    for v in a.variants.split(","):
+        configs[f"new/{v}"] = (lambda v: lambda c: read_plate(reader, c, variant=v).text)(v)
+    configs["new/otsu, no correction"] = lambda c: read_plate(reader, c, "otsu", use_correction=False).text
+
+    results = {}
+    per_crop = []
+    for name, fn in configs.items():
+        recs = []
+        for r in rows:
+            crop = cv2.imread(str(crops_dir / r["crop"]))
+            pred = fn(crop) if crop is not None else ""
+            rec = {"gt": clean(r["gt_text"]), "pred": pred, "lines": r.get("lines", "") or "?",
+                   "h": h_bucket(int(r["box_h"])), "cond": r.get("condition", "") or "untagged"}
+            recs.append(rec)
+            per_crop.append({"config": name, "crop": r["crop"], **rec})
+        groups = defaultdict(list)
+        for rec in recs:
+            groups[f"lines={rec['lines']}"].append(rec)
+            groups[f"height {rec['h']}"].append(rec)
+            groups[f"cond={rec['cond']}"].append(rec)
+        results[name] = {"all": summarise(recs), **{k: summarise(v) for k, v in sorted(groups.items())}}
+        s = results[name]["all"]
+        print(f"{name:28s} exact {s['exact']:.3f}  CER {s['cer']:.3f}  "
+              f"read {s['read_rate']:.3f}  precision {s['precision']:.3f}")
+
+    a.out.mkdir(parents=True, exist_ok=True)
+    with open(a.out / "ocr_predictions.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(per_crop[0].keys()))
+        w.writeheader()
+        w.writerows(per_crop)
+    md = [f"# OCR evaluation ({len(rows)} legible hand-labelled plates)", "",
+          "| config | exact match | CER | read rate | precision |", "|---|---|---|---|---|"]
+    for name, res in results.items():
+        s = res["all"]
+        md.append(f"| {name} | {s['exact']:.3f} | {s['cer']:.3f} | {s['read_rate']:.3f} | {s['precision']:.3f} |")
+    best = max(results, key=lambda k: results[k]["all"]["exact"])
+    md += ["", f"## Breakdown for best config: {best}", "",
+           "| group | n | exact | CER |", "|---|---|---|---|"]
+    for g, s in results[best].items():
+        if g != "all" and s:
+            md.append(f"| {g} | {s['n']} | {s['exact']:.3f} | {s['cer']:.3f} |")
+    (a.out / "ocr_eval.md").write_text("\n".join(md) + "\n")
+    print(f"\nWrote {a.out / 'ocr_eval.md'} and ocr_predictions.csv")
+
+
+if __name__ == "__main__":
+    main()

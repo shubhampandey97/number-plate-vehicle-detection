@@ -72,3 +72,6 @@ torch_cache/
 
 # MYPY
 .mypy_cache/
+# Local evaluation artefacts
+eval/ocr_gt/crops/
+docs/results/test_eval/

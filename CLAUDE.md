@@ -14,7 +14,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 | P 96.18 %, R 97.27 %, mAP@0.5 98.46 % | Real, but on the **val** split, which also chose `best.pt`. No test number yet. |
 | "Performed OCR in real time", "Improved OCR accuracy" | OCR **never measured**. `outputs/logs/plate_logs.csv`: 0/38 reads are valid plates. |
 | "Tracking improved OCR consistency significantly" | Not measured. Each track is OCR'd once, on its first frame with conf ≥ 0.7. |
-| "Organizing train/validation/test splits" | Split unseeded. `images/test` also contains **unlabelled** images. |
+| "Organizing train/validation/test splits" | Split unseeded (training itself used seed 0). Test = 179 images, all labelled, never used for training or checkpoint choice → usable held-out set. |
 | Indian traffic ANPR | Data also contains **Mexico City (CDMX) plates** (report pp. 35–36: K02-BAJ, J95-BCS, A-5613-C; the same plate appears in several images). |
 | EDA table (report p. 23): Car 4116, Number Plate 479, **Blur Number Plate 1149**, Two Wheeler 1598, Auto 1072, Bus 305, Truck 435 | These are the raw "Traffic Dataset" classes. `remap_and_merge_datasets.py` maps **both** Number Plate and Blur Number Plate → class 3. So many "plates" the detector is scored on are unreadable by design. Detection AP for plates ≠ readable plates. |
 
@@ -22,8 +22,9 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 - Root on Shubham's PC: `D:\Guvi\Projects\major\number-plate-vehicle-detection\`
 - `data/` is git-ignored:
   - `data/raw_datasets/{dataset, roboflow_dataset, Traffic Dataset, custom_dataset}`: the sources (Traffic Dataset includes videos, e.g. `Video11.mp4`).
-  - `data/final_merged_datasets/{images,labels}/{train,val,test}` + `data.yaml`: the training set. Train 1,247 / val 356 images. Test = 10 % labelled + extra unlabelled images.
-- Weights (git-ignored `*.pt`): **`runs/detect/runs1/detect/traffic_object_detector-2/weights/best.pt`** (YOLOv8l, 960 px, 150 epochs). Older runs in `runs/detect/runs/...` (YOLOv8n, stopped after 6 epochs) and `runs/detect/outputs/training/number_plate_detector` (1-class plate model, still used by `streamlit_app/utils.py`).
+  - `data/final_merged_datasets/{images,labels}/{train,val,test}` + `data.yaml`: the training set. Train 1,247 / val 356 / test 179 (all labelled). Files renamed `img_NNNNNN`, with **no mapping back to the source dataset**.
+  - Other copies, unclear which fed the merge: `data/Traffic Dataset` (2,166 imgs, 18 videos), `data/raw` (509 imgs + an unexplained `best.pt`), `data/dataset` (198), `data/final_dataset` (115). `data/processed`, `data/samples` are empty.
+- Weights (git-ignored `*.pt`): **`runs/detect/runs1/detect/traffic_object_detector-2/weights/best.pt`** (YOLOv8l, 960 px, 150 epochs, 87.7 MB; same folder has last.pt and epoch0–140.pt at ~350 MB each, which could be deleted to save ~5 GB). Older runs in `runs/detect/runs/...` (YOLOv8n, stopped after 6 epochs) and `runs/detect/outputs/training/number_plate_detector` (1-class plate model, still used by `streamlit_app/utils.py`).
 - Final class ids (`remap_and_merge_datasets.py`): **0 Bike, 1 Bus, 2 Car, 3 Number_plate, 4 Person, 5 Truck, 6 Auto**. Prefer `model.names` over hard-coded lists.
 - **Privacy:** plate crops and plate text are personal data. Never commit images, crops, videos or real plate logs from new runs. Labels CSV (`eval/ocr_gt/ocr_gt.csv`) is OK to commit; crops are git-ignored.
 
@@ -45,7 +46,8 @@ src/training/train.py      YOLOv8l training config (GPU, device=0)
 src/inference/             predict.py (batch images), predict_and_crop.py (save crops)
 src/ocr/                   plate_ocr.py (single image), video_ocr.py (video, OCR every 5 frames)   [legacy, duplicated OCR]
 src/tracking/vehicle_tracking.py   ByteTrack + OCR once per track, imgsz=640 (!)                 [legacy]
-src/analytics/traffic_analytics.py tracking + counts + writes outputs/logs/plate_logs.csv         [legacy]
+src/analytics/traffic_analytics.py tracking + counts + writes outputs/logs/plate_logs.csv, imgsz=640 (!) [legacy]
+src/detection/, src/utils/ empty
 src/preprocessing/         enhancement/normalization/augmentation demos, ocr_preprocessing.py (adaptive threshold variant)
 src/visualization/         annotation drawing
 src/dataset_engineering/   conversion (COCO→YOLO), merging (remap_and_merge = the real one), cleaning,
@@ -73,7 +75,7 @@ Legacy scripts load models at import time, use Windows `\` relative paths and mu
 - Don't rewrite or delete the legacy scripts until the replacement is wired in and tested. Then remove the duplicates in one commit.
 - Commit messages end with the co-author line. Work on `upgrade-v2`; open a PR to `main` per finished goal.
 
-## Current state (7 Nov 2026)
-- Done: audit, `src/anpr`, tools, 29 tests, CI, requirements fixed (commit `1f58ed0`, then the CLAUDE.md/country commit).
+## Current state (8 Nov 2026)
+- Done: audit, `src/anpr`, tools, 29 tests, CI, requirements fixed, CLAUDE.md; audit corrected after the on-disk check (test fully labelled, 640 in two scripts, provenance lost).
 - Next for Shubham (CPU-light): `python tools/check_leakage.py`, then `python tools/make_ocr_labelset.py --split test`, then hand-label ~200 crops (gt_text, legible, lines, condition, country).
 - Then: `eval_ocr.py` → `eval_detector_test.py` (after TB training) → re-split by source if there is leakage → wire `anpr.ocr` into the tracker and app, add multi-frame voting, run the tracker at 960 → ONNX/FP16 benchmark → FastAPI + Docker → README results table + model card.

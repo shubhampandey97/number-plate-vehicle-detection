@@ -16,7 +16,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 1. **No held-out test number.** `results.csv` metrics are on val, which was also used to choose the best checkpoint and for early stopping (`patience=40`).
 2. **Split isn't reproducible.** `split_final_dataset.py` calls `random.shuffle` with no seed, so it can't be recreated.
 3. **Possible leakage.** "Traffic Dataset" comes from videos (`Video11.mp4`, …). A random image-level split puts consecutive frames of the same car and plate into both train and val. → `tools/check_leakage.py`.
-4. **Test folder holds unlabelled images.** `move_unlabeled_to_test.py` moved images *without labels* into `images/test`. If you run `model.val(split="test")` directly, every correct detection on those images counts as a false positive. → `tools/eval_detector_test.py` evaluates only labelled test images.
+4. **Test split: 179 images, all labelled** (corrected 8 Nov after checking the data on disk). Earlier versions of this audit said `images/test` held unlabelled images, because of `move_unlabeled_to_test.py`, but that script reads `data/raw_datasets/images`, which doesn't exist, so it never ran on this layout. 179 = 10 % of 1,782, matching `split_final_dataset.py`. The test split was never used in training or for picking `best.pt`, so **it's a usable held-out set** (still subject to the leakage check). `eval_detector_test.py` keeps its labelled-only filter as a safety check.
 5. **Mixed plate sources and unreadable "plates".** The report's batch previews (pp. 35–36) show **Mexico City (CDMX) plates**, and the same plate (A-5613-C, J95-BCS) appears in several images. The raw "Traffic Dataset" has a separate *Blur Number Plate* class (1,149 boxes, versus 479 clear ones), and `remap_and_merge_datasets.py` merges it into Number_plate. So plate detection AP mixes readable and unreadable plates from two countries. → the OCR label set records `legible` and `country`, and OCR is scored on legible Indian plates.
 6. **Class imbalance:** Person has 104 train / 41 val instances, against 6,017 / 1,617 for Car. Report per-class AP and don't lean on the overall mean.
 
@@ -28,11 +28,13 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 11. **Each track is OCR'd only once,** on its first frame with conf ≥ 0.7. Often that's the smallest, farthest view of the plate. Better: vote across frames, or read when the box is largest.
 
 ### Engineering
-12. **The tracker runs at `imgsz=640` while the model was trained and is predicted at 960,** which hurts small plates in exactly the video path.
+12. **Video scripts run at `imgsz=640` while the model was trained at 960:** both `src/tracking/vehicle_tracking.py:96` and `src/analytics/traffic_analytics.py:112` (the script that wrote `plate_logs.csv`). This hurts small plates in exactly the video path.
 13. **Class names are hard-coded** in 4 places. Use `model.names` instead.
 14. **`streamlit_app/utils.py` loads a different, older model** (`number_plate_detector`, YOLOv8n, 1 class).
 15. **`requirements.txt` couldn't be installed:** it was UTF-16 encoded, had conda `@ file:///C:/...` lines, and pinned both `opencv-python` and `-headless`. Replaced with a minimal pinned file.
-16. **Hard-coded Windows paths** (`D:\Guvi\...`). `main.py` is empty. No tests.
+16. **Hard-coded Windows paths** (`D:\Guvi\...`). `main.py` is empty, `src/detection/` and `src/utils/` are empty. No tests.
+17. **Source of each image is lost.** `remap_and_merge_datasets.py` renamed everything to `img_NNNNNN` and saved no mapping. The raw folders now hold about 1,236 label files (923 + 115 + 99 + 99), but the merged set has 1,782 labelled images, so the raw folders changed after the merge, or the merge used another copy (`data/Traffic Dataset` 2,166 images, `data/raw` 509, `data/dataset` 198). → Goal 5 (re-split by source) first needs **provenance recovered by matching image hashes** against every copy under `data/`. `data/raw/best.pt` is unexplained.
+18. Training itself used `seed: 0` (args.yaml); only the split script is unseeded.
 
 ## Plan
 
@@ -42,7 +44,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
-| 5 | If leakage is found: group-aware re-split (by source video / dataset) with a seed, then retrain | GPU | todo |
+| 5 | Recover provenance (hash-match merged images to raw copies), then if leakage is found: group-aware re-split with a seed, retrain | light / GPU | todo |
 | 6 | Wire `anpr.ocr` into tracker + app; multi-frame voting; tracker at 960 | light | todo |
 | 7 | ONNX / FP16 export, FPS + latency benchmark CPU vs GPU | moderate | todo |
 | 8 | FastAPI `/read-plate`, Docker, README results table, model card | light | todo |
@@ -50,6 +52,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). Goal: find out which of the h
 ## Status
 - [x] Audit written, shared `src/anpr` module, 29 unit tests passing, CI workflow, requirements fixed (branch `upgrade-v2`).
 - [x] CLAUDE.md added (repo map, data/weights locations, conventions)
+- [x] Repo checked on disk by Claude Code (8 Nov): best.pt present (87.7 MB), test 179/179 labelled, findings 4/12/17/18 corrected
 - [ ] Goal 1 run
 - [ ] Goal 2 labels
 - [ ] Goal 3 run

@@ -3,10 +3,10 @@
 The 0.985 mAP@0.5 in the README comes from the val split, which Ultralytics
 also used to select best.pt. This script reports test-split numbers instead.
 
-Caveat handled here: move_unlabeled_to_test.py copied UNLABELLED images into
-images/test. Ultralytics would treat them as "no objects" and count every
-correct detection on them as a false positive. So we evaluate only test
-images that have a label file, via an explicit image list.
+Safety check: only test images that have a label file are evaluated (via an
+explicit image list). An unlabelled image would count every correct detection
+as a false positive. On the current data all 179 test images are labelled, so
+this filter changes nothing; it is kept in case the folder changes.
 
 Usage (GPU or CPU; on CPU it is slow at imgsz 960 - fine to run later):
     python tools/eval_detector_test.py --weights path/to/best.pt \

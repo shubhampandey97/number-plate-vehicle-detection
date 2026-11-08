@@ -9,16 +9,59 @@ Run from the repo root:
 """
 from __future__ import annotations
 
+import base64
 import csv
+import io
 import re
+import sys
 from pathlib import Path
 
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from anpr.labels import parse_line  # noqa: E402
 
 GT = Path("eval/ocr_gt/ocr_gt.csv")
 CROPS = GT.parent / "crops"
 FIELDS = ["gt_text", "legible", "lines", "condition", "country"]
+DATA = Path("data/final_v2")
+
+
+def show(img: Image.Image, width: int, caption: str = ""):
+    """Embed the image as base64 in the page (doesn't depend on Streamlit's
+    media server, which some browsers/extensions block). Small crops are
+    scaled with hard pixel edges so nothing is invented."""
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode()
+    st.markdown(
+        f'<img src="data:image/png;base64,{b64}" style="width:{width}px;image-rendering:pixelated;'
+        f'border:1px solid #555"/><div style="font-size:0.8em;color:#999">{caption}</div>',
+        unsafe_allow_html=True)
+
+
+def context_view(row):
+    """The plate inside the full photo, with a red box, cropped to ~4x the plate size."""
+    m = re.match(r"(.+)_p(\d+)$", Path(row["crop"]).stem)
+    for split in ("test", "val", "train"):
+        img_p = DATA / "images" / split / row["source_image"]
+        lbl_p = DATA / "labels" / split / f"{Path(row['source_image']).stem}.txt"
+        if img_p.exists() and lbl_p.exists() and m:
+            lines = lbl_p.read_text().splitlines()
+            k = int(m.group(2))
+            box = parse_line(lines[k]) if k < len(lines) else None
+            if not box:
+                return None
+            im = Image.open(img_p).convert("RGB")
+            W, H = im.size
+            _, cx, cy, w, h = box
+            x1, y1, x2, y2 = (cx - w / 2) * W, (cy - h / 2) * H, (cx + w / 2) * W, (cy + h / 2) * H
+            ImageDraw.Draw(im).rectangle([x1 - 2, y1 - 2, x2 + 2, y2 + 2], outline=(255, 0, 0), width=2)
+            pw, ph = max(4 * (x2 - x1), 160), max(6 * (y2 - y1), 90)
+            return im.crop((int(max(0, cx * W - pw / 2)), int(max(0, cy * H - ph / 2)),
+                            int(min(W, cx * W + pw / 2)), int(min(H, cy * H + ph / 2))))
+    return None
 
 
 def load():
@@ -59,8 +102,12 @@ r = rows[i]
 
 st.caption(f"#{i + 1}  {r['crop']}  (from {r['source_image']}, {r['box_w']}×{r['box_h']} px)")
 img = Image.open(CROPS / r["crop"])
-scale = max(1, int(300 / max(img.width, 1)))
-st.image(img.resize((img.width * scale, img.height * scale), Image.NEAREST))
+show(img, width=min(600, max(240, img.width * 8)), caption="plate crop (enlarged, pixels not smoothed)")
+ctx = context_view(r)
+if ctx is not None:
+    show(ctx, width=600, caption="in context (red box)")
+if int(r["box_h"]) < 12:
+    st.info("Very small plate (under 12 px tall). If you can't read every character, choose 'n'.")
 
 with st.form(f"f{i}"):
     text = st.text_input("Plate text (letters and digits only, no spaces; leave empty if unreadable)",

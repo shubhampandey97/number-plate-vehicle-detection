@@ -49,7 +49,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 | 1e | Scene-level bootstrap CIs on test (local inference) | light | todo |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | **first run 8 Nov**: EasyOCR fails (legacy 0/42 Indian crops, best new 1/42); see Status |
-| 3b | Plate-specific OCR: (i) zero-shot fast-plate-ocr global model (`eval_ocr.py --fastplate cct-s-v2-global-model`), (ii) fine-tune on Indian plates (Kaggle), (iii) multi-frame voting in the tracker | light / GPU | (i) ready |
+| 3b | Plate-specific OCR: (i) zero-shot fast-plate-ocr global model (`eval_ocr.py --fastplate cct-s-v2-global-model`), (ii) fine-tune on Indian plates (Kaggle), (iii) multi-frame voting in the tracker | light / GPU | **(i) done: 10/42 exact, CER 0.22** |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
 | 5 | Recover provenance (hash-match merged images to raw copies), then if leakage is found: group-aware re-split with a seed, retrain | light / GPU | todo |
 | 6 | Wire `anpr.ocr` into tracker + app; multi-frame voting; tracker at 960 | light | todo |
@@ -68,7 +68,9 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] Goal 2 (8 Nov): 250 test plate crops hand-labelled (`eval/ocr_gt/ocr_gt.csv`): **only 48 (19 %) readable by a human**; 202 too small/blurred. The 48 readable crops are only **20 unique plates** (4 Delhi cars appear in 28 crops of consecutive frames); 29 of 48 are under 20 px tall.
 - [x] Goal 3 first run (8 Nov, EasyOCR, GPU): legacy pipeline **0/42** Indian crops exact (CER 0.89); new pipeline best (gray) 1/42 (CER 0.87); without format check reads 93 % but CER 0.75 and 3 % precision. Under 20 px nothing is read. Conclusion: a general text reader can't read these plates; preprocessing doesn't fix it. Found and fixed: correction accepted 1-digit RTO codes outside Delhi ("HR2GEA7905" not corrected to HR26EA7905).
 - [x] RTO fix re-run (8 Nov): new/gray 2/42 Indian crops exact (precision 0.29), legacy 0/42.
-- [ ] Label clean-up before quoting OCR numbers: same plate labelled two ways (DL3CNN1550 / DL3CCN1550); non-Indian plates tagged IN (NU52RGY, 88184P1, 4897861, R628JPK); DL9CA06084 has 5 final digits.
+- [x] fast-plate-ocr cct-s-v2-global, zero-shot (8 Nov): **10/42 Indian crops exact (0.238), per-plate 0.425, CER 0.219; plates >=20 px 7/13 exact (CER 0.13); <20 px 3/29.** vs best EasyOCR 2/42 (CER 0.86). Typical errors: last or first characters dropped at the crop edge (DL9CU485, 30CM1550).
+- [x] Format correction made stricter (8 Nov): with a good reader it was "repairing" truncated reads into valid-looking wrong plates (DL9CU485 -> DL9C0485, DL1TT055 -> DL1T7055, AP16D043 -> AP160043). Now: Delhi needs >= 2 series letters; plates without series letters accepted only exactly as read. Remaining undetectable errors (DL9CU4855) need multi-frame voting.
+- [ ] Label clean-up before quoting OCR numbers (the 4 "lost" correct reads with correction were 4897861, NU52RGY, 88184P1 x2: non-Indian plates tagged IN): same plate labelled two ways (DL3CNN1550 / DL3CCN1550); non-Indian plates tagged IN (NU52RGY, 88184P1, 4897861, R628JPK); DL9CA06084 has 5 final digits.
 - [ ] Goal 1e: bootstrap CIs
 - [ ] Goal 2 labels
 - [ ] Goal 3 run

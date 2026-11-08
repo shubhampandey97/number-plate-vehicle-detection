@@ -39,6 +39,18 @@ def test_single_digit_rto_only_for_delhi():
     assert c.valid and c.text == "HR26EA7905"
 
 
+@pytest.mark.parametrize("raw", ["DL9CU485", "DL1TT055", "AP16D043"])
+def test_correct_does_not_invent_plates_from_truncated_reads(raw):
+    # real fast-plate-ocr outputs (true plates DL9CU4856, DL1RTC0583, AP16TD4436);
+    # the old rules "repaired" them into DL9C0485, DL1T7055, AP160043
+    assert not correct(raw).valid
+
+
+def test_plate_without_series_only_accepted_as_read():
+    assert correct("HR743571").text == "HR743571"     # exact read, kept
+    assert not correct("HR74357I").valid              # would need a substitution, rejected
+
+
 def test_correct_rejects_unknown_state():
     # 0 -> O gives 'OL', which is not a state code: reject rather than guess
     assert not correct("0L3CAF0001").valid

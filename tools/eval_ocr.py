@@ -50,6 +50,15 @@ def legacy_read(reader, crop):
     return best
 
 
+def add_margin(crop, fx: float = 0.08, fy: float = 0.15):
+    """Replicate-border margin around a tight plate crop."""
+    if crop is None or crop.size == 0:
+        return crop
+    h, w = crop.shape[:2]
+    px, py = max(2, int(w * fx)), max(2, int(h * fy))
+    return cv2.copyMakeBorder(crop, py, py, px, px, cv2.BORDER_REPLICATE)
+
+
 def _patch_fastplate_download(tries: int = 8):
     """fast-plate-ocr downloads its model from GitHub releases with a single
     urllib call, which fails on a transient 504. Retry with back-off and a
@@ -159,8 +168,13 @@ def main():
         from anpr.plate_text import correct
 
         fp = fastplate_reader(a.fastplate)
-        configs[f"fastplate {a.fastplate}, raw"] = fp
-        configs[f"fastplate {a.fastplate} + correction"] = lambda c: correct(fp(c)).text
+        name = a.fastplate.replace("-global-model", "")
+        configs[f"fastplate {name}, raw"] = fp
+        configs[f"fastplate {name} + correction"] = lambda c: correct(fp(c)).text
+        # crops are cut exactly at the box edge and the model drops edge characters
+        # (DL9CU485, 30CM1550): try a small replicated margin
+        configs[f"fastplate {name}, margin"] = lambda c: fp(add_margin(c))
+        configs[f"fastplate {name}, margin + correction"] = lambda c: correct(fp(add_margin(c))).text
 
     results = {}
     per_crop = []

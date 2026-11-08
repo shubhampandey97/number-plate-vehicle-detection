@@ -10,6 +10,13 @@ Formats handled
   which uses 1-2 digits followed by a category letter (DL3C..., DL10C...).
   Without that rule "HR2GEA7905" was accepted as HR + 2 + GEA + 7905 instead
   of being corrected to HR26EA7905.
+  Delhi plates carry a category letter plus series (DL9CU4856, DL1RTC0583),
+  so at least 2 letters follow the RTO digits.
+
+`correct()` is stricter than `is_valid()`: it never *creates* a rare format
+by substitution. A truncated read like "DL9CU485" must not be "repaired" into
+the valid-looking but wrong "DL9C0485" (seen in the eval). Plates without
+series letters (old "HR743571") are accepted only exactly as read.
 * Bharat (BH) series:  YY BH NNNN L{1,2}   e.g. 22BH1234AA
 """
 from __future__ import annotations
@@ -44,10 +51,12 @@ def is_valid(plate: str) -> bool:
     """True if `plate` (already cleaned) matches an Indian plate format."""
     m = STANDARD_RE.match(plate)
     if m:
-        state, rto, _, num = m.groups()
+        state, rto, series, num = m.groups()
         if state not in STATE_CODES or rto in ("0", "00") or num == "0000":
             return False
-        return len(rto) == 2 or state == "DL"
+        if state == "DL":
+            return len(series) >= 2
+        return len(rto) == 2
     return bool(BH_RE.match(plate))
 
 
@@ -96,6 +105,8 @@ def correct(text: str, max_subs: int = 2) -> Correction:
         return Correction(raw, raw, 0, True)
     best = None
     for tpl in _templates(len(raw)):
+        if tpl.startswith("LL") and "L" not in tpl[2:]:
+            continue                      # no series letters: only accepted exactly as read
         res = _coerce(raw, tpl)
         if res and res[1] <= max_subs and is_valid(res[0]):
             if best is None or res[1] < best[1]:

@@ -32,6 +32,13 @@ def test_correct(raw, expected):
     assert c.valid and c.text == expected
 
 
+def test_single_digit_rto_only_for_delhi():
+    assert is_valid("DL3CAF0001")
+    assert not is_valid("HR2GEA7905")            # must not be read as HR + 2 + GEA
+    c = correct("HR2GEA7905")                     # real EasyOCR output in eval/ocr_gt
+    assert c.valid and c.text == "HR26EA7905"
+
+
 def test_correct_rejects_unknown_state():
     # 0 -> O gives 'OL', which is not a state code: reject rather than guess
     assert not correct("0L3CAF0001").valid

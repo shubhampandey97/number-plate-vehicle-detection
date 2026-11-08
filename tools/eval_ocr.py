@@ -50,6 +50,15 @@ def legacy_read(reader, crop):
     return best
 
 
+def per_plate(recs):
+    """Many crops are the same car in consecutive frames. Average per unique
+    plate text first, so one car seen 10 times doesn't count 10 times."""
+    by = defaultdict(list)
+    for r in recs:
+        by[r["gt"]].append(r["pred"] == r["gt"])
+    return (sum(sum(v) / len(v) for v in by.values()) / len(by)) if by else 0.0, len(by)
+
+
 def h_bucket(h: int) -> str:
     return "<20px" if h < 20 else "20-40px" if h < 40 else ">=40px"
 
@@ -107,7 +116,11 @@ def main():
             groups[f"cond={rec['cond']}"].append(rec)
             groups[f"country={rec['country']}"].append(rec)
         indian = [rec for rec in recs if rec["country"] == "IN"]
-        results[name] = {"all": summarise(indian) or summarise(recs), "all_countries": summarise(recs), **{k: summarise(v) for k, v in sorted(groups.items())}}
+        big = [rec for rec in indian if rec["h"] != "<20px"]
+        results[name] = {"all": summarise(indian) or summarise(recs), "all_countries": summarise(recs),
+                         "IN, plate >=20px": summarise(big),
+                         **{k: summarise(v) for k, v in sorted(groups.items())}}
+        results[name]["all"]["per_plate_exact"], results[name]["all"]["n_plates"] = per_plate(indian or recs)
         s = results[name]["all"]
         print(f"{name:28s} exact {s['exact']:.3f}  CER {s['cer']:.3f}  "
               f"read {s['read_rate']:.3f}  precision {s['precision']:.3f}")
@@ -118,16 +131,23 @@ def main():
         w.writeheader()
         w.writerows(per_crop)
     n_in = sum((r.get("country", "") or "IN").strip().upper() == "IN" for r in rows)
-    md = [f"# OCR evaluation: {n_in} legible Indian plates ({len(rows)} legible in total)", "",
-          "| config | exact match | CER | read rate | precision |", "|---|---|---|---|---|"]
+    n_plates = next(iter(results.values()))["all"]["n_plates"]
+    md = [f"# OCR evaluation: {n_in} legible Indian plate crops = {n_plates} unique plates "
+          f"({len(rows)} legible crops in total)", "",
+          "Crops come from the split-v2 test set, cut from ground-truth boxes (detector errors excluded). "
+          "Many crops are the same car in consecutive frames, so `per-plate exact` averages per unique plate first.", "",
+          "| config | exact match | per-plate exact | CER | read rate | precision | exact, plates >=20 px |",
+          "|---|---|---|---|---|---|---|"]
     for name, res in results.items():
-        s = res["all"]
-        md.append(f"| {name} | {s['exact']:.3f} | {s['cer']:.3f} | {s['read_rate']:.3f} | {s['precision']:.3f} |")
+        s, b = res["all"], res["IN, plate >=20px"]
+        md.append(f"| {name} | {s['exact']:.3f} | {s['per_plate_exact']:.3f} | {s['cer']:.3f} | "
+                  f"{s['read_rate']:.3f} | {s['precision']:.3f} | "
+                  + (f"{b['exact']:.3f} (n={b['n']})" if b else "-") + " |")
     best = max(results, key=lambda k: results[k]["all"]["exact"])
     md += ["", f"## Breakdown for best config: {best}", "",
            "| group | n | exact | CER |", "|---|---|---|---|"]
     for g, s in results[best].items():
-        if g != "all" and s:
+        if g != "all" and s and "n" in s:
             md.append(f"| {g} | {s['n']} | {s['exact']:.3f} | {s['cer']:.3f} |")
     (a.out / "ocr_eval.md").write_text("\n".join(md) + "\n")
     print(f"\nWrote {a.out / 'ocr_eval.md'} and ocr_predictions.csv")

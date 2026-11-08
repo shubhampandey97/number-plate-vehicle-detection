@@ -48,7 +48,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 | 1d | Retrain on split v2 on Kaggle (`notebooks/kaggle_train_v2.ipynb`): YOLOv8s and YOLOv8l @960, same hyper-parameters as the baseline; val + held-out test metrics | GPU (Kaggle) | **done**: test mAP50 0.743 (s) / 0.707 (l), see docs/results/detector_v2.md |
 | 1e | Scene-level bootstrap CIs on test (local inference) | light | todo |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
-| 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
+| 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | **first run 8 Nov**: EasyOCR fails (legacy 0/42 Indian crops, best new 1/42); see Status |
+| 3b | Plate-specific OCR (plate-trained recogniser, then fine-tune on Indian plates) + multi-frame voting | GPU (Kaggle) | todo |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
 | 5 | Recover provenance (hash-match merged images to raw copies), then if leakage is found: group-aware re-split with a seed, retrain | light / GPU | todo |
 | 6 | Wire `anpr.ocr` into tracker + app; multi-frame voting; tracker at 960 | light | todo |
@@ -64,7 +65,10 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] Goal 1b (8 Nov): 588 scenes (201 singletons, 12 of 21–100 images, largest 82 = 4.6 %); pairs confirmed visually (identical frames incl. jpg/png copies; consecutive frames of the same fixed cameras); weights moved to models/
 - [x] Goal 1c (8 Nov): split v2 built. **879 of 1,782 images (49 %) were duplicate copies**; 903 unique images in 588 scenes; train 629 / val 151 / test 123 (69.7/16.7/13.6 %); check_leakage on v2: 0 cross-split pairs. Boxes (train/val/test): Bike 775/151/186, Bus 197/39/50, Car 2385/439/543, Number_plate 1151/225/286, Person 56/18/24, Truck 257/49/60, Auto 552/101/137.
 - [x] Goal 1d (8 Nov): Kaggle T4. **Held-out test mAP50: YOLOv8s 0.743 (mAP50-95 0.519), YOLOv8l 0.707 (0.508)** vs the reported (leaked) 0.985. Number_plate test mAP50 0.851 / 0.835. YOLOv8s chosen for deployment. docs/results/detector_v2.md
-- [ ] Goal 1e: bootstrap CIs; Goal 2: OCR label set from v2 test
+- [x] Goal 2 (8 Nov): 250 test plate crops hand-labelled (`eval/ocr_gt/ocr_gt.csv`): **only 48 (19 %) readable by a human**; 202 too small/blurred. The 48 readable crops are only **20 unique plates** (4 Delhi cars appear in 28 crops of consecutive frames); 29 of 48 are under 20 px tall.
+- [x] Goal 3 first run (8 Nov, EasyOCR, GPU): legacy pipeline **0/42** Indian crops exact (CER 0.89); new pipeline best (gray) 1/42 (CER 0.87); without format check reads 93 % but CER 0.75 and 3 % precision. Under 20 px nothing is read. Conclusion: a general text reader can't read these plates; preprocessing doesn't fix it. Found and fixed: correction accepted 1-digit RTO codes outside Delhi ("HR2GEA7905" not corrected to HR26EA7905).
+- [ ] Label clean-up before quoting OCR numbers: same plate labelled two ways (DL3CNN1550 / DL3CCN1550); non-Indian plates tagged IN (NU52RGY, 88184P1, 4897861, R628JPK); DL9CA06084 has 5 final digits.
+- [ ] Goal 1e: bootstrap CIs
 - [ ] Goal 2 labels
 - [ ] Goal 3 run
 - [ ] Goal 4 run

@@ -87,4 +87,5 @@ Run every script from the repo root.
 - Done: audit, `src/anpr`, tools, 37 tests, CI, restructure, leakage proof, split v2 (903 unique images), **Kaggle retrain**.
 - **Honest detector numbers (held-out test, 123 images / 82 scenes):** YOLOv8s mAP50 0.743 / mAP50-95 0.519; YOLOv8l 0.707 / 0.508. Number_plate 0.851 (s). Weak: Person 0.43, Bus 0.54 (few examples). The reported 0.985 was leaked val. Deploy model: `models/yolov8s_v2.pt`.
 - Local GPU (MX250) is for inference only; train on Kaggle (`notebooks/kaggle_train_v2.ipynb`).
+- **OCR (8 Nov):** 250 test crops labelled → 48 readable (19 %) = 20 unique plates. EasyOCR: legacy 0/42 Indian crops, new best 1/42. General OCR can't read these plates; next is a plate-specific recogniser + multi-frame voting. Labels need small clean-up (see audit Status).
 - Next: (1) scene-level bootstrap CIs on test (local inference with yolov8s_v2), (2) `make_ocr_labelset.py --root data/final_v2` + hand-label ~200 plates → `eval_ocr.py`, (3) switch app + legacy scripts to `models/yolov8s_v2.pt` and `anpr.ocr`, imgsz 960, multi-frame voting, (4) ONNX/OpenVINO benchmark, (5) FastAPI + Docker, README results.

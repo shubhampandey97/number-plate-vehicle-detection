@@ -5,7 +5,11 @@ Pure Python (no OpenCV / EasyOCR), so it is fast to unit-test.
 Formats handled
 ---------------
 * Standard:  SS DD [L{0,3}] NNNN   e.g. MH12AB1234, DL3CAF0001, UP65T1234
-  SS = state/UT code, DD = RTO code (1-2 digits), L = series letters, N = number.
+  SS = state/UT code, DD = RTO code, L = series letters, N = number.
+  RTO codes are written with 2 digits (MH01, HR26) everywhere except Delhi,
+  which uses 1-2 digits followed by a category letter (DL3C..., DL10C...).
+  Without that rule "HR2GEA7905" was accepted as HR + 2 + GEA + 7905 instead
+  of being corrected to HR26EA7905.
 * Bharat (BH) series:  YY BH NNNN L{1,2}   e.g. 22BH1234AA
 """
 from __future__ import annotations
@@ -40,7 +44,10 @@ def is_valid(plate: str) -> bool:
     """True if `plate` (already cleaned) matches an Indian plate format."""
     m = STANDARD_RE.match(plate)
     if m:
-        return m.group(1) in STATE_CODES and m.group(2) != "00" and m.group(4) != "0000"
+        state, rto, _, num = m.groups()
+        if state not in STATE_CODES or rto in ("0", "00") or num == "0000":
+            return False
+        return len(rto) == 2 or state == "DL"
     return bool(BH_RE.match(plate))
 
 

@@ -41,6 +41,7 @@ tools/                     evaluation CLIs (argparse, paths relative to repo roo
   make_group_split.py      split v2: drop duplicate copies (dHash 0), assign whole scenes (dHash<=4) to 70/15/15, seeded,
                            class-balanced -> data/final_v2 + docs/leakage/split_v2.csv/report; verifies 0 cross-split pairs
   make_ocr_labelset.py     crops GT plate boxes -> eval/ocr_gt/crops + ocr_gt.csv to hand-label
+  label_ocr_app.py         Streamlit labeller: one crop at a time -> writes eval/ocr_gt/ocr_gt.csv (streamlit run tools/label_ocr_app.py)
   eval_ocr.py              legacy vs new OCR: exact match, CER, read rate, precision; by lines/height/condition/country
   eval_detector_test.py    detector metrics on labelled test images (default weights models/yolov8l_baseline.pt)
 tests/                     pytest (37 tests); CI in .github/workflows/ci.yml

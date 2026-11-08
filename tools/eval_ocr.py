@@ -50,6 +50,25 @@ def legacy_read(reader, crop):
     return best
 
 
+def fastplate_reader(model_name: str):
+    """Plate-specific recogniser (fast-plate-ocr, ONNX). Returns crop(BGR) -> cleaned text."""
+    import tempfile
+
+    from fast_plate_ocr import LicensePlateRecognizer
+
+    m = LicensePlateRecognizer(model_name)
+    tmp = Path(tempfile.mkdtemp()) / "crop.png"
+
+    def read(crop):
+        if crop is None or crop.size == 0:
+            return ""
+        cv2.imwrite(str(tmp), crop)          # pass a file: the library handles its own colour/resize
+        out = m.run(str(tmp))
+        p = out[0] if isinstance(out, (list, tuple)) and out else out
+        return clean(str(getattr(p, "plate", p)))   # v1.1 returns objects with .plate, older versions str
+    return read
+
+
 def per_plate(recs):
     """Many crops are the same car in consecutive frames. Average per unique
     plate text first, so one car seen 10 times doesn't count 10 times."""
@@ -80,6 +99,9 @@ def main():
     ap.add_argument("--gt", type=Path, default=Path("eval/ocr_gt/ocr_gt.csv"))
     ap.add_argument("--variants", default="otsu,gray,clahe,adaptive")
     ap.add_argument("--gpu", action="store_true")
+    ap.add_argument("--fastplate", default="",
+                    help="also test a plate-trained recogniser from fast-plate-ocr, e.g. cct-s-v2-global-model "
+                         "(pip install \"fast-plate-ocr[onnx]\")")
     ap.add_argument("--out", type=Path, default=Path("docs/results"))
     a = ap.parse_args()
 
@@ -96,6 +118,12 @@ def main():
     for v in a.variants.split(","):
         configs[f"new/{v}"] = (lambda v: lambda c: read_plate(reader, c, variant=v).text)(v)
     configs["new/otsu, no correction"] = lambda c: read_plate(reader, c, "otsu", use_correction=False).text
+    if a.fastplate:
+        from anpr.plate_text import correct
+
+        fp = fastplate_reader(a.fastplate)
+        configs[f"fastplate {a.fastplate}, raw"] = fp
+        configs[f"fastplate {a.fastplate} + correction"] = lambda c: correct(fp(c)).text
 
     results = {}
     per_crop = []

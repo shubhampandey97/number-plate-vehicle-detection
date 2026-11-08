@@ -8,3 +8,6 @@ pandas==3.0.2
 pillow==12.1.1
 PyYAML==6.0.3
 streamlit==1.57.0
+
+# Optional: plate-trained OCR for tools/eval_ocr.py --fastplate
+# pip install "fast-plate-ocr[onnx]"

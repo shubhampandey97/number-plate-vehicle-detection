@@ -153,7 +153,8 @@ Interactive dashboard with:
 > **Upgrade in progress (branch `upgrade-v2`).** The original metrics are being re-checked: see
 > [`docs/audit.md`](docs/audit.md). Validation and test images turned out to have near-duplicates in
 > train ([`docs/leakage/leakage_report.md`](docs/leakage/leakage_report.md)), so the numbers below are
-> validation-only and optimistic until the re-split and re-evaluation are done.
+> validation-only and optimistic. **Retrained on a deduplicated, scene-grouped split, the held-out test mAP50 is
+> 0.743 (YOLOv8s) / 0.707 (YOLOv8l)**, see [`docs/results/detector_v2.md`](docs/results/detector_v2.md).
 
 ```text
 src/anpr/            shared library: plate-text rules (Indian formats, OCR fixes), one OCR pipeline

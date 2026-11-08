@@ -11,7 +11,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 ## Report claims vs. what's verified
 | Report says | Reality (see `docs/audit.md`) |
 |---|---|
-| P 96.18 %, R 97.27 %, mAP@0.5 98.46 % | **Inflated by leakage.** Val split, which also chose `best.pt`, and **82.6 % of val / 86.0 % of test images have a near-duplicate in another split** (dHash ≤ 4; 47 exact copies). The current test split can't give an honest number either. |
+| P 96.18 %, R 97.27 %, mAP@0.5 98.46 % | **Inflated by leakage:** val split that also chose `best.pt`; 82.6 % of val / 86.0 % of test images had a near-duplicate in train (49 % of merged data were copies). Retrained on leak-free split v2, held-out test mAP50 = **0.707 (YOLOv8l) / 0.743 (YOLOv8s)**, see docs/results/detector_v2.md. |
 | "Performed OCR in real time", "Improved OCR accuracy" | OCR **never measured**. `outputs/logs/plate_logs.csv`: 0/38 reads are valid plates. |
 | "Tracking improved OCR consistency significantly" | Not measured. Each track is OCR'd once, on its first frame with conf ≥ 0.7. |
 | "Organizing train/validation/test splits" | Split unseeded (training itself used seed 0). Test = 179 images, all labelled, never used for training or checkpoint choice → usable held-out set. |
@@ -24,7 +24,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
   - `data/raw_datasets/{dataset, roboflow_dataset, Traffic Dataset, custom_dataset}`: the sources (Traffic Dataset includes videos, e.g. `Video11.mp4`).
   - `data/final_merged_datasets/{images,labels}/{train,val,test}` + `data.yaml`: the training set. Train 1,247 / val 356 / test 179 (all labelled). Files renamed `img_NNNNNN`, with **no mapping back to the source dataset**.
   - Other copies, unclear which fed the merge: `data/Traffic Dataset` (2,166 imgs, 18 videos), `data/raw` (509 imgs + an unexplained `best.pt`), `data/dataset` (198), `data/final_dataset` (115). `data/processed`, `data/samples` are empty.
-- Weights (git-ignored `*.pt`): **`models/yolov8l_baseline.pt`** = the old `runs/detect/runs1/detect/traffic_object_detector-2/weights/best.pt` (YOLOv8l, 960 px, 150 epochs, 87.7 MB). All scripts load this path.
+- Weights (git-ignored `*.pt`): **`models/yolov8s_v2.pt`** (deploy model, split v2, test mAP50 0.743), `models/yolov8l_v2.pt` (split v2, 0.707), and **`models/yolov8l_baseline.pt`** = the old `runs/detect/runs1/detect/traffic_object_detector-2/weights/best.pt` (YOLOv8l, 960 px, 150 epochs, 87.7 MB). All scripts load this path.
 - Final class ids (`remap_and_merge_datasets.py`): **0 Bike, 1 Bus, 2 Car, 3 Number_plate, 4 Person, 5 Truck, 6 Auto**. Prefer `model.names` over hard-coded lists.
 - **Privacy:** plate crops and plate text are personal data. Never commit images, crops, videos or real plate logs from new runs. Labels CSV (`eval/ocr_gt/ocr_gt.csv`) is OK to commit; crops are git-ignored.
 
@@ -53,6 +53,7 @@ legacy/                    old pipeline, replaced step by step by src/anpr (see 
   ocr/plate_ocr.py, ocr/video_ocr.py, tracking/vehicle_tracking.py (imgsz 640), analytics/traffic_analytics.py (imgsz 640),
   inference/predict.py, inference/predict_and_crop.py
 notebooks/kaggle_train_v2.ipynb  Kaggle GPU: trains YOLOv8s + YOLOv8l @960 on split v2, val+test metrics, zips results
+results/v2_yolov8s_960/, results/v2_yolov8l_960/, results/summary_v2.md   Kaggle runs on split v2 (val + test metrics)
 results/baseline_yolov8l/  args.yaml, results.csv, curves, confusion matrices, val batch previews, plate_logs_legacy.csv
 reports/eda/, reports/dataset_engineering/   EDA + dataset reports (moved from eda_report/ and outputs/)
 docs/                      audit.md (source of truth for progress), leakage/, results/
@@ -82,11 +83,7 @@ Run every script from the repo root.
 - Commit messages end with the co-author line. Work on `upgrade-v2`; open a PR to `main` per finished goal.
 
 ## Current state (8 Nov 2026)
-- Done: audit, `src/anpr`, tools, 32 tests, CI, requirements, CLAUDE.md, restructure, leakage check + inspection, **split v2**.
-- **Leakage cause:** the merge held the same frames 2–3 times (jpg + png copies; `dataset` = `roboflow_dataset`) plus consecutive frames from fixed cameras. **879 of 1,782 images were copies → 903 unique.**
-- **Split v2** (`data/final_v2`, git-ignored; mapping in `docs/leakage/split_v2.csv`): train 629 / val 151 / test 123, 0 cross-split near-duplicates. Use this for all new training and evaluation. `data/final_merged_datasets` is kept only as the source.
-- Env: `anpr_env`, torch 2.11.0+cu126, GPU = GeForce MX250 4 GB → train YOLOv8s @960, batch 4, **amp off** (`scripts/train.py`). YOLOv8l only on Kaggle/Colab.
-- The baseline `models/yolov8l_baseline.pt` was trained on copies of most v2 val/test images, so its score on v2 test is NOT a fair number (report it only as "contaminated").
-- **Training moved to Kaggle** (8 Nov): local MX250 too slow (YOLOv8s@960 ≈ 17–19 min/epoch even at batch 2 + RAM cache). Upload `data/final_v2` as a private Kaggle dataset, run `notebooks/kaggle_train_v2.ipynb`, download `anpr_v2_results.zip`, unpack runs to `results/v2_yolov8s_960/`, `results/v2_yolov8l_960/` and weights to `models/`.
-- Local speed (smoke, 8 Nov): YOLOv8s @960 batch 4 = 7.0 s/it, GPU_mem 4.01 G (full) → ~19 min/epoch → too slow; testing batch 2 + RAM cache and 640 px. Rule: full epoch ≈ 10 × smoke training time.
-- Next: `python scripts/train.py --smoke` → full run overnight → `python tools/eval_detector_test.py --weights runs/train/v2_yolov8s_960/weights/best.pt` → copy curated results to `results/v2_yolov8s_960/` → OCR label set from v2 test (`make_ocr_labelset.py --root data/final_v2`).
+- Done: audit, `src/anpr`, tools, 37 tests, CI, restructure, leakage proof, split v2 (903 unique images), **Kaggle retrain**.
+- **Honest detector numbers (held-out test, 123 images / 82 scenes):** YOLOv8s mAP50 0.743 / mAP50-95 0.519; YOLOv8l 0.707 / 0.508. Number_plate 0.851 (s). Weak: Person 0.43, Bus 0.54 (few examples). The reported 0.985 was leaked val. Deploy model: `models/yolov8s_v2.pt`.
+- Local GPU (MX250) is for inference only; train on Kaggle (`notebooks/kaggle_train_v2.ipynb`).
+- Next: (1) scene-level bootstrap CIs on test (local inference with yolov8s_v2), (2) `make_ocr_labelset.py --root data/final_v2` + hand-label ~200 plates → `eval_ocr.py`, (3) switch app + legacy scripts to `models/yolov8s_v2.pt` and `anpr.ocr`, imgsz 960, multi-frame voting, (4) ONNX/OpenVINO benchmark, (5) FastAPI + Docker, README results.

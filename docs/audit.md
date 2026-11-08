@@ -6,7 +6,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 
 | Claim | Status |
 |---|---|
-| Detector P 0.962 / R 0.973 / mAP@0.5 0.985 (YOLOv8l, epoch 150) | **Inflated by leakage (confirmed 8 Nov).** It's the **val** split, which also picked `best.pt`. `tools/check_leakage.py`: 4,749 cross-split near-duplicate pairs (47 byte-identical); **82.6 % of val and 86.0 % of test images** have a near-duplicate in another split. Needs a group-aware re-split and retraining before any detector number is quotable. |
+| Detector P 0.962 / R 0.973 / mAP@0.5 0.985 (YOLOv8l, epoch 150) | **Inflated by leakage (confirmed 8 Nov). Retrained on a leak-free split: held-out test mAP50 0.707 (YOLOv8l) / 0.743 (YOLOv8s).** It's the **val** split, which also picked `best.pt`. `tools/check_leakage.py`: 4,749 cross-split near-duplicate pairs (47 byte-identical); **82.6 % of val and 86.0 % of test images** have a near-duplicate in another split. Needs a group-aware re-split and retraining before any detector number is quotable. |
 | "Automatic Number Plate Recognition" | **Not measured.** OCR has never been scored. `eda/ocr_ground_truth.py` writes image names with blank text, so no labels exist. |
 | End-to-end plate reading works | **Evidence says no.** `outputs/logs/plate_logs.csv` has 38 plates read by the tracker. **0 of 38** match an Indian plate format, and all are 4–8 characters, while real plates have 9–10. The format corrector (below) can't rescue any of them, so they are misreads, not small O/0-type slips. |
 
@@ -45,7 +45,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 | 1 | Leakage check train↔val↔test (`tools/check_leakage.py`) | light, <1 min | **done: 82.6 % val / 86.0 % test leaked** |
 | 1b | Inspect pairs + scene groups (`tools/inspect_leakage.py`) | light | **done**: 588 scenes, largest 4.6 %; contact sheets show same frames / consecutive frames of fixed cameras |
 | 1c | Deduplicated, group-aware, seeded split v2 (`tools/make_group_split.py` → `data/final_v2`) + re-check | light | **done**: 879/1,782 were copies → 903 unique images; train 629 / val 151 / test 123; 0 cross-split pairs |
-| 1d | Retrain on split v2 on Kaggle (`notebooks/kaggle_train_v2.ipynb`): YOLOv8s and YOLOv8l @960, same hyper-parameters as the baseline; val + held-out test metrics | GPU (Kaggle) | notebook ready |
+| 1d | Retrain on split v2 on Kaggle (`notebooks/kaggle_train_v2.ipynb`): YOLOv8s and YOLOv8l @960, same hyper-parameters as the baseline; val + held-out test metrics | GPU (Kaggle) | **done**: test mAP50 0.743 (s) / 0.707 (l), see docs/results/detector_v2.md |
+| 1e | Scene-level bootstrap CIs on test (local inference) | light | todo |
 | 2 | OCR ground truth: ~200 GT plate crops, hand-typed (`tools/make_ocr_labelset.py`) | none (your typing time) | script ready |
 | 3 | OCR evaluation, legacy vs new pipeline (`tools/eval_ocr.py`) | moderate, minutes | script ready (needs goal 2) |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
@@ -62,7 +63,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] Repo restructured (8 Nov): app/, scripts/, legacy/, results/, reports/, models/; dead scripts and old experiment folders removed
 - [x] Goal 1b (8 Nov): 588 scenes (201 singletons, 12 of 21–100 images, largest 82 = 4.6 %); pairs confirmed visually (identical frames incl. jpg/png copies; consecutive frames of the same fixed cameras); weights moved to models/
 - [x] Goal 1c (8 Nov): split v2 built. **879 of 1,782 images (49 %) were duplicate copies**; 903 unique images in 588 scenes; train 629 / val 151 / test 123 (69.7/16.7/13.6 %); check_leakage on v2: 0 cross-split pairs. Boxes (train/val/test): Bike 775/151/186, Bus 197/39/50, Car 2385/439/543, Number_plate 1151/225/286, Person 56/18/24, Truck 257/49/60, Auto 552/101/137.
-- [ ] Goal 1d: train YOLOv8s on v2, evaluate on v2 test
+- [x] Goal 1d (8 Nov): Kaggle T4. **Held-out test mAP50: YOLOv8s 0.743 (mAP50-95 0.519), YOLOv8l 0.707 (0.508)** vs the reported (leaked) 0.985. Number_plate test mAP50 0.851 / 0.835. YOLOv8s chosen for deployment. docs/results/detector_v2.md
+- [ ] Goal 1e: bootstrap CIs; Goal 2: OCR label set from v2 test
 - [ ] Goal 2 labels
 - [ ] Goal 3 run
 - [ ] Goal 4 run

@@ -1,0 +1,289 @@
+config,crop,gt,pred,lines,country,h,cond
+legacy (original repo),img_000086_p0.png,NU52RGY,NU52,2,OTHER,>=40px,day
+legacy (original repo),img_000143_p0.png,NEWYORK19841SH,19841ASH,2,OTHER,>=40px,day
+legacy (original repo),img_000631_p14.png,DL9CU4856,,1,IN,<20px,blur
+legacy (original repo),img_000028_p0.png,4897861,K897861,1,IN,>=40px,untagged
+legacy (original repo),img_000646_p14.png,DL3CNN1550,,1,IN,<20px,blur
+legacy (original repo),img_000413_p0.png,HR743571,3571,1,IN,20-40px,untagged
+legacy (original repo),img_000628_p15.png,DL3CNN1550,,1,IN,<20px,blur
+legacy (original repo),img_000109_p0.png,4345CBK,,1,MX,20-40px,untagged
+legacy (original repo),img_000632_p14.png,DL1RTC0583,,1,IN,<20px,blur
+legacy (original repo),img_000653_p13.png,DL9CU4856,IOLOSC,1,IN,<20px,untagged
+legacy (original repo),img_000053_p0.png,NEWYORK19841SH,19841ASH,1,OTHER,>=40px,untagged
+legacy (original repo),img_001286_p1.png,UP16AN1098,,1,IN,20-40px,untagged
+legacy (original repo),img_001321_p2.png,HR58A0826,,1,IN,20-40px,angle+blur
+legacy (original repo),img_001307_p3.png,DL9CA06084,,1,IN,20-40px,blur
+legacy (original repo),img_000631_p15.png,DL3CCN1550,,1,IN,<20px,blur
+legacy (original repo),img_000647_p12.png,DL1RTC0583,,1,IN,<20px,blur
+legacy (original repo),img_000638_p13.png,DL3CCN1550,,1,IN,<20px,blur
+legacy (original repo),img_000176_p0.png,NU52RGY,NU52,2,IN,>=40px,untagged
+legacy (original repo),img_000135_p0.png,88184P1,,1,IN,>=40px,untagged
+legacy (original repo),img_000626_p12.png,DL1RTC0583,,1,IN,<20px,untagged
+legacy (original repo),img_000630_p15.png,DL3CCN1550,,1,IN,<20px,untagged
+legacy (original repo),img_000365_p4.png,R628JPK,EZSF,1,IN,20-40px,blur
+legacy (original repo),img_000630_p14.png,DL1RTC0583,,1,IN,<20px,blur
+legacy (original repo),img_000019_p0.png,4345CBK,,1,MX,20-40px,untagged
+legacy (original repo),img_000626_p11.png,DL9CU4856,,1,IN,<20px,blur
+legacy (original repo),img_000045_p0.png,88184P1,,1,IN,>=40px,untagged
+legacy (original repo),img_000646_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+legacy (original repo),img_000629_p14.png,DL9CU4856,,1,IN,<20px,untagged
+legacy (original repo),img_000629_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+legacy (original repo),img_001321_p1.png,HR26EA7905,HRZ6EA7905I,1,IN,20-40px,untagged
+legacy (original repo),img_000425_p0.png,AP16TD4436,14439,1,IN,>=40px,untagged
+legacy (original repo),img_000646_p12.png,DL9CU4856,,1,IN,<20px,untagged
+legacy (original repo),img_000628_p13.png,DL9CU4856,,1,IN,<20px,untagged
+legacy (original repo),img_000628_p14.png,DL1RTC0583,,1,IN,<20px,untagged
+legacy (original repo),img_000632_p13.png,DL9CU4856,9C05,1,IN,<20px,untagged
+legacy (original repo),img_001289_p2.png,HR989995,,1,IN,<20px,untagged
+legacy (original repo),img_000632_p15.png,DL3CNN1550,,1,IN,<20px,blur
+legacy (original repo),img_000647_p11.png,DL9CU4856,,1,IN,<20px,untagged
+legacy (original repo),img_000629_p15.png,DL3CNN1550,,1,IN,<20px,blur
+legacy (original repo),img_000638_p12.png,DL1RTC0583,,1,IN,<20px,blur
+legacy (original repo),img_000653_p14.png,DL1RTC0583,,1,IN,<20px,blur
+legacy (original repo),img_000638_p11.png,DL9CU4856,,1,IN,<20px,untagged
+legacy (original repo),img_000631_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+legacy (original repo),img_000653_p15.png,DL3CCN1550,,1,IN,<20px,blur
+legacy (original repo),img_000626_p13.png,DL3CCN1550,,1,IN,<20px,blur
+legacy (original repo),img_000282_p9.png,C605HC197RUS,,2,OTHER,>=40px,untagged
+legacy (original repo),img_000434_p0.png,HR63C2419,HRS3,2,IN,>=40px,untagged
+legacy (original repo),img_001274_p1.png,HR26DG7793,HR260G77935,1,IN,>=40px,untagged
+new/otsu,img_000086_p0.png,NU52RGY,,2,OTHER,>=40px,day
+new/otsu,img_000143_p0.png,NEWYORK19841SH,,2,OTHER,>=40px,day
+new/otsu,img_000631_p14.png,DL9CU4856,,1,IN,<20px,blur
+new/otsu,img_000028_p0.png,4897861,,1,IN,>=40px,untagged
+new/otsu,img_000646_p14.png,DL3CNN1550,,1,IN,<20px,blur
+new/otsu,img_000413_p0.png,HR743571,,1,IN,20-40px,untagged
+new/otsu,img_000628_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/otsu,img_000109_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/otsu,img_000632_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/otsu,img_000653_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_000053_p0.png,NEWYORK19841SH,,1,OTHER,>=40px,untagged
+new/otsu,img_001286_p1.png,UP16AN1098,UP16AW1030,1,IN,20-40px,untagged
+new/otsu,img_001321_p2.png,HR58A0826,,1,IN,20-40px,angle+blur
+new/otsu,img_001307_p3.png,DL9CA06084,,1,IN,20-40px,blur
+new/otsu,img_000631_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/otsu,img_000647_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/otsu,img_000638_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/otsu,img_000176_p0.png,NU52RGY,,2,IN,>=40px,untagged
+new/otsu,img_000135_p0.png,88184P1,,1,IN,>=40px,untagged
+new/otsu,img_000626_p12.png,DL1RTC0583,,1,IN,<20px,untagged
+new/otsu,img_000630_p15.png,DL3CCN1550,,1,IN,<20px,untagged
+new/otsu,img_000365_p4.png,R628JPK,,1,IN,20-40px,blur
+new/otsu,img_000630_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/otsu,img_000019_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/otsu,img_000626_p11.png,DL9CU4856,,1,IN,<20px,blur
+new/otsu,img_000045_p0.png,88184P1,,1,IN,>=40px,untagged
+new/otsu,img_000646_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/otsu,img_000629_p14.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_000629_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/otsu,img_001321_p1.png,HR26EA7905,,1,IN,20-40px,untagged
+new/otsu,img_000425_p0.png,AP16TD4436,,1,IN,>=40px,untagged
+new/otsu,img_000646_p12.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_000628_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_000628_p14.png,DL1RTC0583,,1,IN,<20px,untagged
+new/otsu,img_000632_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_001289_p2.png,HR989995,HR903995,1,IN,<20px,untagged
+new/otsu,img_000632_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/otsu,img_000647_p11.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_000629_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/otsu,img_000638_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/otsu,img_000653_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/otsu,img_000638_p11.png,DL9CU4856,,1,IN,<20px,untagged
+new/otsu,img_000631_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/otsu,img_000653_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/otsu,img_000626_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/otsu,img_000282_p9.png,C605HC197RUS,,2,OTHER,>=40px,untagged
+new/otsu,img_000434_p0.png,HR63C2419,HR532419,2,IN,>=40px,untagged
+new/otsu,img_001274_p1.png,HR26DG7793,HR26OG7793,1,IN,>=40px,untagged
+new/gray,img_000086_p0.png,NU52RGY,,2,OTHER,>=40px,day
+new/gray,img_000143_p0.png,NEWYORK19841SH,,2,OTHER,>=40px,day
+new/gray,img_000631_p14.png,DL9CU4856,DL9CU1056,1,IN,<20px,blur
+new/gray,img_000028_p0.png,4897861,,1,IN,>=40px,untagged
+new/gray,img_000646_p14.png,DL3CNN1550,,1,IN,<20px,blur
+new/gray,img_000413_p0.png,HR743571,,1,IN,20-40px,untagged
+new/gray,img_000628_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/gray,img_000109_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/gray,img_000632_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/gray,img_000653_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/gray,img_000053_p0.png,NEWYORK19841SH,,1,OTHER,>=40px,untagged
+new/gray,img_001286_p1.png,UP16AN1098,,1,IN,20-40px,untagged
+new/gray,img_001321_p2.png,HR58A0826,,1,IN,20-40px,angle+blur
+new/gray,img_001307_p3.png,DL9CA06084,,1,IN,20-40px,blur
+new/gray,img_000631_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/gray,img_000647_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/gray,img_000638_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/gray,img_000176_p0.png,NU52RGY,,2,IN,>=40px,untagged
+new/gray,img_000135_p0.png,88184P1,,1,IN,>=40px,untagged
+new/gray,img_000626_p12.png,DL1RTC0583,,1,IN,<20px,untagged
+new/gray,img_000630_p15.png,DL3CCN1550,,1,IN,<20px,untagged
+new/gray,img_000365_p4.png,R628JPK,,1,IN,20-40px,blur
+new/gray,img_000630_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/gray,img_000019_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/gray,img_000626_p11.png,DL9CU4856,,1,IN,<20px,blur
+new/gray,img_000045_p0.png,88184P1,,1,IN,>=40px,untagged
+new/gray,img_000646_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/gray,img_000629_p14.png,DL9CU4856,DL9CU1050,1,IN,<20px,untagged
+new/gray,img_000629_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/gray,img_001321_p1.png,HR26EA7905,HR26EA7905,1,IN,20-40px,untagged
+new/gray,img_000425_p0.png,AP16TD4436,AP18I4439,1,IN,>=40px,untagged
+new/gray,img_000646_p12.png,DL9CU4856,,1,IN,<20px,untagged
+new/gray,img_000628_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/gray,img_000628_p14.png,DL1RTC0583,,1,IN,<20px,untagged
+new/gray,img_000632_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/gray,img_001289_p2.png,HR989995,,1,IN,<20px,untagged
+new/gray,img_000632_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/gray,img_000647_p11.png,DL9CU4856,DL9CU1856,1,IN,<20px,untagged
+new/gray,img_000629_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/gray,img_000638_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/gray,img_000653_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/gray,img_000638_p11.png,DL9CU4856,,1,IN,<20px,untagged
+new/gray,img_000631_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/gray,img_000653_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/gray,img_000626_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/gray,img_000282_p9.png,C605HC197RUS,,2,OTHER,>=40px,untagged
+new/gray,img_000434_p0.png,HR63C2419,HR532419,2,IN,>=40px,untagged
+new/gray,img_001274_p1.png,HR26DG7793,HR26DG7793,1,IN,>=40px,untagged
+new/clahe,img_000086_p0.png,NU52RGY,,2,OTHER,>=40px,day
+new/clahe,img_000143_p0.png,NEWYORK19841SH,,2,OTHER,>=40px,day
+new/clahe,img_000631_p14.png,DL9CU4856,DL1CU1856,1,IN,<20px,blur
+new/clahe,img_000028_p0.png,4897861,,1,IN,>=40px,untagged
+new/clahe,img_000646_p14.png,DL3CNN1550,,1,IN,<20px,blur
+new/clahe,img_000413_p0.png,HR743571,,1,IN,20-40px,untagged
+new/clahe,img_000628_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/clahe,img_000109_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/clahe,img_000632_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/clahe,img_000653_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/clahe,img_000053_p0.png,NEWYORK19841SH,,1,OTHER,>=40px,untagged
+new/clahe,img_001286_p1.png,UP16AN1098,,1,IN,20-40px,untagged
+new/clahe,img_001321_p2.png,HR58A0826,,1,IN,20-40px,angle+blur
+new/clahe,img_001307_p3.png,DL9CA06084,,1,IN,20-40px,blur
+new/clahe,img_000631_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/clahe,img_000647_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/clahe,img_000638_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/clahe,img_000176_p0.png,NU52RGY,,2,IN,>=40px,untagged
+new/clahe,img_000135_p0.png,88184P1,,1,IN,>=40px,untagged
+new/clahe,img_000626_p12.png,DL1RTC0583,,1,IN,<20px,untagged
+new/clahe,img_000630_p15.png,DL3CCN1550,,1,IN,<20px,untagged
+new/clahe,img_000365_p4.png,R628JPK,,1,IN,20-40px,blur
+new/clahe,img_000630_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/clahe,img_000019_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/clahe,img_000626_p11.png,DL9CU4856,,1,IN,<20px,blur
+new/clahe,img_000045_p0.png,88184P1,,1,IN,>=40px,untagged
+new/clahe,img_000646_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/clahe,img_000629_p14.png,DL9CU4856,DL9CU1050,1,IN,<20px,untagged
+new/clahe,img_000629_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/clahe,img_001321_p1.png,HR26EA7905,HR26EA7905,1,IN,20-40px,untagged
+new/clahe,img_000425_p0.png,AP16TD4436,,1,IN,>=40px,untagged
+new/clahe,img_000646_p12.png,DL9CU4856,,1,IN,<20px,untagged
+new/clahe,img_000628_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/clahe,img_000628_p14.png,DL1RTC0583,,1,IN,<20px,untagged
+new/clahe,img_000632_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/clahe,img_001289_p2.png,HR989995,,1,IN,<20px,untagged
+new/clahe,img_000632_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/clahe,img_000647_p11.png,DL9CU4856,DL1CU1856,1,IN,<20px,untagged
+new/clahe,img_000629_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/clahe,img_000638_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/clahe,img_000653_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/clahe,img_000638_p11.png,DL9CU4856,,1,IN,<20px,untagged
+new/clahe,img_000631_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/clahe,img_000653_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/clahe,img_000626_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/clahe,img_000282_p9.png,C605HC197RUS,,2,OTHER,>=40px,untagged
+new/clahe,img_000434_p0.png,HR63C2419,HR532419,2,IN,>=40px,untagged
+new/clahe,img_001274_p1.png,HR26DG7793,HR26OG7793,1,IN,>=40px,untagged
+new/adaptive,img_000086_p0.png,NU52RGY,,2,OTHER,>=40px,day
+new/adaptive,img_000143_p0.png,NEWYORK19841SH,,2,OTHER,>=40px,day
+new/adaptive,img_000631_p14.png,DL9CU4856,,1,IN,<20px,blur
+new/adaptive,img_000028_p0.png,4897861,,1,IN,>=40px,untagged
+new/adaptive,img_000646_p14.png,DL3CNN1550,,1,IN,<20px,blur
+new/adaptive,img_000413_p0.png,HR743571,,1,IN,20-40px,untagged
+new/adaptive,img_000628_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/adaptive,img_000109_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/adaptive,img_000632_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/adaptive,img_000653_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_000053_p0.png,NEWYORK19841SH,,1,OTHER,>=40px,untagged
+new/adaptive,img_001286_p1.png,UP16AN1098,,1,IN,20-40px,untagged
+new/adaptive,img_001321_p2.png,HR58A0826,,1,IN,20-40px,angle+blur
+new/adaptive,img_001307_p3.png,DL9CA06084,,1,IN,20-40px,blur
+new/adaptive,img_000631_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/adaptive,img_000647_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/adaptive,img_000638_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/adaptive,img_000176_p0.png,NU52RGY,,2,IN,>=40px,untagged
+new/adaptive,img_000135_p0.png,88184P1,,1,IN,>=40px,untagged
+new/adaptive,img_000626_p12.png,DL1RTC0583,,1,IN,<20px,untagged
+new/adaptive,img_000630_p15.png,DL3CCN1550,,1,IN,<20px,untagged
+new/adaptive,img_000365_p4.png,R628JPK,,1,IN,20-40px,blur
+new/adaptive,img_000630_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/adaptive,img_000019_p0.png,4345CBK,,1,MX,20-40px,untagged
+new/adaptive,img_000626_p11.png,DL9CU4856,,1,IN,<20px,blur
+new/adaptive,img_000045_p0.png,88184P1,,1,IN,>=40px,untagged
+new/adaptive,img_000646_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/adaptive,img_000629_p14.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_000629_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/adaptive,img_001321_p1.png,HR26EA7905,,1,IN,20-40px,untagged
+new/adaptive,img_000425_p0.png,AP16TD4436,,1,IN,>=40px,untagged
+new/adaptive,img_000646_p12.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_000628_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_000628_p14.png,DL1RTC0583,,1,IN,<20px,untagged
+new/adaptive,img_000632_p13.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_001289_p2.png,HR989995,,1,IN,<20px,untagged
+new/adaptive,img_000632_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/adaptive,img_000647_p11.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_000629_p15.png,DL3CNN1550,,1,IN,<20px,blur
+new/adaptive,img_000638_p12.png,DL1RTC0583,,1,IN,<20px,blur
+new/adaptive,img_000653_p14.png,DL1RTC0583,,1,IN,<20px,blur
+new/adaptive,img_000638_p11.png,DL9CU4856,,1,IN,<20px,untagged
+new/adaptive,img_000631_p13.png,DL1RTC0583,,1,IN,<20px,untagged
+new/adaptive,img_000653_p15.png,DL3CCN1550,,1,IN,<20px,blur
+new/adaptive,img_000626_p13.png,DL3CCN1550,,1,IN,<20px,blur
+new/adaptive,img_000282_p9.png,C605HC197RUS,,2,OTHER,>=40px,untagged
+new/adaptive,img_000434_p0.png,HR63C2419,,2,IN,>=40px,untagged
+new/adaptive,img_001274_p1.png,HR26DG7793,,1,IN,>=40px,untagged
+"new/otsu, no correction",img_000086_p0.png,NU52RGY,NU52RGY,2,OTHER,>=40px,day
+"new/otsu, no correction",img_000143_p0.png,NEWYORK19841SH,MULU19841ASH,2,OTHER,>=40px,day
+"new/otsu, no correction",img_000631_p14.png,DL9CU4856,FQ9CZOSC,1,IN,<20px,blur
+"new/otsu, no correction",img_000028_p0.png,4897861,K897861,1,IN,>=40px,untagged
+"new/otsu, no correction",img_000646_p14.png,DL3CNN1550,X7,1,IN,<20px,blur
+"new/otsu, no correction",img_000413_p0.png,HR743571,HR74035715,1,IN,20-40px,untagged
+"new/otsu, no correction",img_000628_p15.png,DL3CNN1550,QXOTN,1,IN,<20px,blur
+"new/otsu, no correction",img_000109_p0.png,4345CBK,V63I4SCRKK,1,MX,20-40px,untagged
+"new/otsu, no correction",img_000632_p14.png,DL1RTC0583,LZ,1,IN,<20px,blur
+"new/otsu, no correction",img_000653_p13.png,DL9CU4856,QIC0LOSF,1,IN,<20px,untagged
+"new/otsu, no correction",img_000053_p0.png,NEWYORK19841SH,19841ASH,1,OTHER,>=40px,untagged
+"new/otsu, no correction",img_001286_p1.png,UP16AN1098,UP1G4W1030,1,IN,20-40px,untagged
+"new/otsu, no correction",img_001321_p2.png,HR58A0826,RC8A0826,1,IN,20-40px,angle+blur
+"new/otsu, no correction",img_001307_p3.png,DL9CA06084,,1,IN,20-40px,blur
+"new/otsu, no correction",img_000631_p15.png,DL3CCN1550,STST,1,IN,<20px,blur
+"new/otsu, no correction",img_000647_p12.png,DL1RTC0583,CLIMC7,1,IN,<20px,blur
+"new/otsu, no correction",img_000638_p13.png,DL3CCN1550,OTS,1,IN,<20px,blur
+"new/otsu, no correction",img_000176_p0.png,NU52RGY,NU52RGY,2,IN,>=40px,untagged
+"new/otsu, no correction",img_000135_p0.png,88184P1,,1,IN,>=40px,untagged
+"new/otsu, no correction",img_000626_p12.png,DL1RTC0583,Q17J,1,IN,<20px,untagged
+"new/otsu, no correction",img_000630_p15.png,DL3CCN1550,DXOX,1,IN,<20px,untagged
+"new/otsu, no correction",img_000365_p4.png,R628JPK,FBZSF,1,IN,20-40px,blur
+"new/otsu, no correction",img_000630_p14.png,DL1RTC0583,TCZ,1,IN,<20px,blur
+"new/otsu, no correction",img_000019_p0.png,4345CBK,VLSCR,1,MX,20-40px,untagged
+"new/otsu, no correction",img_000626_p11.png,DL9CU4856,LU1S,1,IN,<20px,blur
+"new/otsu, no correction",img_000045_p0.png,88184P1,,1,IN,>=40px,untagged
+"new/otsu, no correction",img_000646_p13.png,DL1RTC0583,OZ,1,IN,<20px,untagged
+"new/otsu, no correction",img_000629_p14.png,DL9CU4856,TGCULO56,1,IN,<20px,untagged
+"new/otsu, no correction",img_000629_p13.png,DL1RTC0583,TIIC71,1,IN,<20px,untagged
+"new/otsu, no correction",img_001321_p1.png,HR26EA7905,HRZGEA79051,1,IN,20-40px,untagged
+"new/otsu, no correction",img_000425_p0.png,AP16TD4436,QAP1BR74439,1,IN,>=40px,untagged
+"new/otsu, no correction",img_000646_p12.png,DL9CU4856,SCOZ7,1,IN,<20px,untagged
+"new/otsu, no correction",img_000628_p13.png,DL9CU4856,FQSC0COS,1,IN,<20px,untagged
+"new/otsu, no correction",img_000628_p14.png,DL1RTC0583,QT,1,IN,<20px,untagged
+"new/otsu, no correction",img_000632_p13.png,DL9CU4856,4ICOCO5G,1,IN,<20px,untagged
+"new/otsu, no correction",img_001289_p2.png,HR989995,HR903995,1,IN,<20px,untagged
+"new/otsu, no correction",img_000632_p15.png,DL3CNN1550,3Z75X,1,IN,<20px,blur
+"new/otsu, no correction",img_000647_p11.png,DL9CU4856,FRICOCOSG,1,IN,<20px,untagged
+"new/otsu, no correction",img_000629_p15.png,DL3CNN1550,OZZE,1,IN,<20px,blur
+"new/otsu, no correction",img_000638_p12.png,DL1RTC0583,4T031,1,IN,<20px,blur
+"new/otsu, no correction",img_000653_p14.png,DL1RTC0583,QOCZ,1,IN,<20px,blur
+"new/otsu, no correction",img_000638_p11.png,DL9CU4856,IOT,1,IN,<20px,untagged
+"new/otsu, no correction",img_000631_p13.png,DL1RTC0583,TMC7Z,1,IN,<20px,untagged
+"new/otsu, no correction",img_000653_p15.png,DL3CCN1550,OIO,1,IN,<20px,blur
+"new/otsu, no correction",img_000626_p13.png,DL3CCN1550,RI,1,IN,<20px,blur
+"new/otsu, no correction",img_000282_p9.png,C605HC197RUS,TC6O5HC1271RJS,2,OTHER,>=40px,untagged
+"new/otsu, no correction",img_000434_p0.png,HR63C2419,HRS32419,2,IN,>=40px,untagged
+"new/otsu, no correction",img_001274_p1.png,HR26DG7793,HR26067793,1,IN,>=40px,untagged

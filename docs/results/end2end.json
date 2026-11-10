@@ -1,0 +1,28 @@
+{
+  "weights": "models/yolov8s_v2.pt",
+  "imgsz": 960,
+  "conf": 0.25,
+  "iou": 0.5,
+  "indian": {
+    "n": 37,
+    "found": 1.0,
+    "correct": 0.13513513513513514,
+    "logged": 7,
+    "precision": 0.7142857142857143
+  },
+  "indian_ge20px": {
+    "n": 8,
+    "found": 1.0,
+    "correct": 0.375,
+    "logged": 4,
+    "precision": 0.75
+  },
+  "all": {
+    "n": 48,
+    "found": 1.0,
+    "correct": 0.10416666666666667,
+    "logged": 7,
+    "precision": 0.7142857142857143
+  },
+  "unique_indian_plates": 13
+}

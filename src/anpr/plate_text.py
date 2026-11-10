@@ -1,4 +1,8 @@
-"""Plate-text post-processing for Indian number plates.
+"""Plate-text post-processing: validation and OCR-confusion correction.
+
+Regions (`region=` argument): "IN" (default, Indian formats), "UK" (current
+British format), "ANY" (no format rules: just clean the text). The data mixes
+countries: the "Traffic Dataset" videos are British, some images are Mexican.
 
 Pure Python (no OpenCV / EasyOCR), so it is fast to unit-test.
 
@@ -34,6 +38,10 @@ STATE_CODES = frozenset(
 
 STANDARD_RE = re.compile(r"^([A-Z]{2})(\d{1,2})([A-Z]{0,3})(\d{4})$")
 BH_RE = re.compile(r"^(\d{2})BH(\d{4})([A-Z]{1,2})$")
+# UK since 2001: area (2 letters) + age (2 digits) + 3 random letters, e.g. GX15OGJ.
+# I, Q and Z are not used in the first two letters; I and Q not in the last three.
+UK_RE = re.compile(r"^[A-HJ-PR-Y]{2}\d{2}[A-HJ-PR-Z]{3}$")
+REGIONS = ("IN", "UK", "ANY")
 
 # Common OCR confusions: what a character is likely to be when the position
 # requires the other type.
@@ -47,8 +55,12 @@ def clean(text: str) -> str:
     return ALNUM.sub("", text.upper())
 
 
-def is_valid(plate: str) -> bool:
-    """True if `plate` (already cleaned) matches an Indian plate format."""
+def is_valid(plate: str, region: str = "IN") -> bool:
+    """True if `plate` (already cleaned) matches a plate format of `region`."""
+    if region == "UK":
+        return bool(UK_RE.match(plate))
+    if region == "ANY":
+        return 5 <= len(plate) <= 10 and any(c.isdigit() for c in plate) and any(c.isalpha() for c in plate)
     m = STANDARD_RE.match(plate)
     if m:
         state, rto, series, num = m.groups()
@@ -68,8 +80,12 @@ class Correction:
     valid: bool        # does `text` match a plate format?
 
 
-def _templates(n: int):
+def _templates(n: int, region: str = "IN"):
     """Yield type-templates ('L'/'D' per char) of length n for valid formats."""
+    if region == "UK":
+        if n == 7:
+            yield "LLDDLLL"
+        return
     for rto, series in product((1, 2), (0, 1, 2, 3)):
         if 2 + rto + series + 4 == n:
             yield "LL" + "D" * rto + "L" * series + "DDDD"
@@ -92,7 +108,7 @@ def _coerce(text: str, template: str):
     return "".join(out), subs
 
 
-def correct(text: str, max_subs: int = 2) -> Correction:
+def correct(text: str, max_subs: int = 2, region: str = "IN") -> Correction:
     """Fix position-type OCR confusions (O<->0, I<->1, S<->5, B<->8 ...).
 
     Tries every valid template of the same length and keeps the valid reading
@@ -100,15 +116,19 @@ def correct(text: str, max_subs: int = 2) -> Correction:
     characters, and gives up (valid=False) if more than `max_subs` changes
     would be needed - better an honest miss than a confident wrong plate.
     """
+    if region not in REGIONS:
+        raise ValueError(f"region must be one of {REGIONS}")
     raw = clean(text)
-    if is_valid(raw):
+    if is_valid(raw, region):
         return Correction(raw, raw, 0, True)
+    if region == "ANY":
+        return Correction("", raw, 0, False)
     best = None
-    for tpl in _templates(len(raw)):
+    for tpl in _templates(len(raw), region):
         if tpl.startswith("LL") and "L" not in tpl[2:]:
             continue                      # no series letters: only accepted exactly as read
         res = _coerce(raw, tpl)
-        if res and res[1] <= max_subs and is_valid(res[0]):
+        if res and res[1] <= max_subs and is_valid(res[0], region):
             if best is None or res[1] < best[1]:
                 best = res
     if best:

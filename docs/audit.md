@@ -8,7 +8,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 |---|---|
 | Detector P 0.962 / R 0.973 / mAP@0.5 0.985 (YOLOv8l, epoch 150) | **Inflated by leakage (confirmed 8 Nov). Retrained on a leak-free split: held-out test mAP50 0.707 (YOLOv8l) / 0.743 (YOLOv8s).** It's the **val** split, which also picked `best.pt`. `tools/check_leakage.py`: 4,749 cross-split near-duplicate pairs (47 byte-identical); **82.6 % of val and 86.0 % of test images** have a near-duplicate in another split. Needs a group-aware re-split and retraining before any detector number is quotable. |
 | "Automatic Number Plate Recognition" | **Not measured.** OCR has never been scored. `eda/ocr_ground_truth.py` writes image names with blank text, so no labels exist. |
-| End-to-end plate reading works | **Evidence says no.** `outputs/logs/plate_logs.csv` has 38 plates read by the tracker. **0 of 38** match an Indian plate format, and all are 4–8 characters, while real plates have 9–10. The format corrector (below) can't rescue any of them, so they are misreads, not small O/0-type slips. |
+| End-to-end plate reading works | **Evidence says no.** `outputs/logs/plate_logs.csv` has 38 plates read by the tracker. 0 of 38 match an Indian format. **Correction (10 Nov):** that log came from `Traffic Dataset/video11.mp4`, which is **British** footage (plates like GX15 OGJ, NA13 NRU), so the right test is the UK format: **2 of 38** reads are valid UK plates (e.g. `NAI3MRU` is NA13 NRU misread). Still a failure, but not "0 % because of truncation". |
 
 ## Findings
 
@@ -73,6 +73,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] Format correction made stricter (8 Nov): with a good reader it was "repairing" truncated reads into valid-looking wrong plates (DL9CU485 -> DL9C0485, DL1TT055 -> DL1T7055, AP16D043 -> AP160043). Now: Delhi needs >= 2 series letters; plates without series letters accepted only exactly as read. Remaining undetectable errors (DL9CU4855) need multi-frame voting.
 - [ ] Label clean-up before quoting OCR numbers (the 4 "lost" correct reads with correction were 4897861, NU52RGY, 88184P1 x2: non-Indian plates tagged IN): same plate labelled two ways (DL3CNN1550 / DL3CCN1550); non-Indian plates tagged IN (NU52RGY, 88184P1, 4897861, R628JPK); DL9CA06084 has 5 final digits.
 - [x] Goal 6 (10 Nov): one deployed path. Fixes old app bugs: vehicles were counted per frame (a car in 100 frames = 100 cars), detector at 640 px, single EasyOCR read per plate. Now: ByteTrack ids (count once per track), 960 px, fastplate OCR on every frame, format check, a plate is logged only when >= 2 valid reads agree.
+- [x] Video run (10 Nov, `video11.mp4`, first 300 frames, 4K, MX250): 2.2 fps; 0 plates logged because the clip is **British** and the check was India-only. Added `region` (IN / UK / ANY) to the plate rules, pipeline, CLI and app. Also found: Car 26 / Truck 26 came from class flicker (same track id counted under both classes); vehicles are now counted once per track under their majority class, with a minimum track length (5 frames).
+- [x] End-to-end single frame (10 Nov, `tools/eval_end2end.py`): detector found **100 %** of the 37 readable Indian test plates; 5/37 read correctly; 7 logged, **71 % correct**. OCR, not detection, is the bottleneck. One Delhi car (DL3CCN1550) is read the same wrong way in every frame (3CCW1555), which voting can't fix → fine-tuning.
 - [ ] Goal 1e: bootstrap CIs
 - [ ] Goal 2 labels
 - [ ] Goal 3 run

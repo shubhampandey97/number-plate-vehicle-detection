@@ -52,20 +52,23 @@ min_votes = st.sidebar.slider("Agreeing reads needed per plate (video)", 1, 5, 2
                               help="A plate is logged only when this many frames give the same valid reading.")
 ocr_every = st.sidebar.slider("Read plates every N frames", 1, 5, 1, help="Higher is faster, fewer votes.")
 show_every = st.sidebar.slider("Show every N-th frame (video)", 1, 10, 3, help="Display only; all frames are processed.")
+region = st.sidebar.selectbox("Plate format", ["IN", "UK", "ANY"],
+                              help="Format rules for the plate check. IN = Indian, UK = British "
+                                   "(the 'Traffic Dataset' videos), ANY = no format rules.")
 mode = st.sidebar.radio("Mode", ["Image", "Video", "Live camera"])
 
 if not (ROOT / MODELS[model_name]).exists():
     st.error(f"Model file not found: {MODELS[model_name]}. See models/README.md.")
     st.stop()
 pipe = load_pipeline(MODELS[model_name], imgsz)
-pipe.conf, pipe.ocr_every = conf, ocr_every
+pipe.conf, pipe.ocr_every, pipe.region = conf, ocr_every, region
 
 
 def show_results():
     c1, c2 = st.columns([1, 2])
     with c1:
         st.subheader("Vehicles (counted once per track)")
-        counts = pipe.vehicle_counts()
+        counts = pipe.vehicle_counts(min_frames=1 if mode == "Image" else 5)
         st.dataframe(pd.DataFrame(counts.items(), columns=["Vehicle", "Count"]), use_container_width=True)
     with c2:
         st.subheader("Plates")

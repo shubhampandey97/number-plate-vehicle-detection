@@ -22,7 +22,7 @@ Usage:
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import cv2
@@ -40,7 +40,8 @@ COLORS = {"Number_plate": (0, 0, 255), "Car": (0, 200, 0), "Bike": (255, 160, 0)
 class ANPRPipeline:
     def __init__(self, weights: str | Path = "models/yolov8s_v2.pt", imgsz: int = 960, conf: float = 0.35,
                  device=None, ocr_model: str = DEFAULT_FASTPLATE, ocr_every: int = 1,
-                 min_plate_h: int = 10, min_votes: int = 2, tracker: str = "bytetrack.yaml"):
+                 min_plate_h: int = 10, min_votes: int = 2, tracker: str = "bytetrack.yaml",
+                 region: str = "IN"):
         from ultralytics import YOLO
 
         self.model = YOLO(str(weights))
@@ -48,6 +49,7 @@ class ANPRPipeline:
         self.read = fastplate_reader(ocr_model)
         self.imgsz, self.conf, self.device, self.tracker = imgsz, conf, device, tracker
         self.ocr_every, self.min_plate_h, self.min_votes = max(1, ocr_every), min_plate_h, min_votes
+        self.region = region          # plate format rules: "IN", "UK" or "ANY" (plate_text.REGIONS)
         self.reset()
 
     # ------------------------------------------------------------------ state
@@ -55,7 +57,10 @@ class ANPRPipeline:
         """Start a new video / image: clears tracks, votes and counts."""
         self.voter = PlateVoter(self.min_votes if min_votes is None else min_votes)
         self.frame_idx = -1
-        self.vehicle_tracks: dict[str, set] = defaultdict(set)
+        # track id -> Counter of classes seen. The detector can flip a track's class between
+        # frames (a white van: Car in some frames, Truck in others); counting per class would
+        # count it twice, so each track is counted once under its most frequent class.
+        self.track_classes: dict[int, Counter] = defaultdict(Counter)
         self.plate_vehicle: dict[int, tuple] = {}
         self._new_sequence = True
 
@@ -85,33 +90,35 @@ class ANPRPipeline:
             if d["id"] is None:                       # no tracking: unique id per detection
                 d["id"] = 100000 * (self.frame_idx + 1) + k
             if d["cls"] != PLATE_CLASS:
-                self.vehicle_tracks[d["cls"]].add(d["id"])
+                self.track_classes[d["id"]][d["cls"]] += 1
                 vehicles.append((d["id"], d["cls"], d["box"]))
 
         for d in dets:
             if d["cls"] != PLATE_CLASS:
                 continue
-            x1, y1, x2, y2 = d["box"]
+            _, y1, _, y2 = d["box"]
             if d["id"] not in self.plate_vehicle:
                 self.plate_vehicle[d["id"]] = assign_plate_to_vehicle(d["box"], vehicles)
             if (y2 - y1) < self.min_plate_h or self.frame_idx % self.ocr_every:
                 continue
             raw = self.read(crop_box(frame, d["box"], pad=2))
-            self.voter.add(d["id"], correct(raw).text, weight=y2 - y1, frame=self.frame_idx)
+            self.voter.add(d["id"], correct(raw, region=self.region).text, weight=y2 - y1, frame=self.frame_idx)
 
         return self.draw(frame.copy(), dets) if draw else frame
 
     # ------------------------------------------------------------------ output
     def draw(self, img, dets):
+        s = max(1.0, img.shape[1] / 1280)            # scale lines/text: 4K video needs ~3x
+        th, fs = max(2, int(2 * s)), 0.5 * s
         for d in dets:
             x1, y1, x2, y2 = d["box"]
             col = COLORS.get(d["cls"], (255, 255, 255))
-            cv2.rectangle(img, (x1, y1), (x2, y2), col, 2)
+            cv2.rectangle(img, (x1, y1), (x2, y2), col, th)
             label = f'{d["cls"]} #{d["id"]}' if d["id"] is not None and d["id"] < 100000 else d["cls"]
             if d["cls"] == PLATE_CLASS:
                 text = self.voter.result(d["id"]).text
                 label = text or "plate ..."
-            cv2.putText(img, label, (x1, max(12, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
+            cv2.putText(img, label, (x1, max(int(12 * s), y1 - int(6 * s))), cv2.FONT_HERSHEY_SIMPLEX, fs, col, th)
         return img
 
     def plates(self, include_unread: bool = False) -> list[dict]:
@@ -126,5 +133,11 @@ class ANPRPipeline:
                         "plate_track": r.track_id, "vehicle_track": vid, "vehicle": vcls})
         return out
 
-    def vehicle_counts(self) -> dict[str, int]:
-        return {cls: len(ids) for cls, ids in sorted(self.vehicle_tracks.items())}
+    def vehicle_counts(self, min_frames: int = 1) -> dict[str, int]:
+        """Vehicles counted once per track, under the class seen most often for that track.
+        min_frames > 1 ignores tracks seen only briefly (flicker, false positives)."""
+        counts: Counter = Counter()
+        for c in self.track_classes.values():
+            if sum(c.values()) >= min_frames:
+                counts[c.most_common(1)[0][0]] += 1
+        return dict(sorted(counts.items()))

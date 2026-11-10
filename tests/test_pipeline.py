@@ -93,3 +93,14 @@ def test_small_plates_are_not_read(monkeypatch):
     pipe.reset()
     pipe.process(frame(0))
     assert pipe.plates(include_unread=True) == []
+
+
+def test_class_flicker_counts_vehicle_once(monkeypatch):
+    pipe = make_pipeline(monkeypatch, [""] * 10)
+    pipe.reset()
+    # the same track id seen as Car 3 times and Truck 2 times -> one Car
+    for cls in ["Car", "Truck", "Car", "Truck", "Car"]:
+        pipe.track_classes[42][cls] += 1
+    pipe.track_classes[43]["Truck"] += 1                       # seen once only
+    assert pipe.vehicle_counts() == {"Car": 1, "Truck": 1}
+    assert pipe.vehicle_counts(min_frames=2) == {"Car": 1}

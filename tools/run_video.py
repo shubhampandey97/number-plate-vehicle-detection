@@ -8,6 +8,7 @@ Writes to --out (default outputs/<video name>/):
 
 Usage (repo root, anpr_env):
     python tools/run_video.py path/to/video.mp4 --save-video
+    python tools/run_video.py "data/Traffic Dataset/video11.mp4" --region UK --save-video   # British footage
     python tools/run_video.py path/to/image.jpg
     python tools/run_video.py video.mp4 --ocr-every 2 --max-frames 600   # faster on the MX250
 """
@@ -47,6 +48,10 @@ def main():
     ap.add_argument("--ocr-every", type=int, default=1, help="read plates every N frames")
     ap.add_argument("--min-votes", type=int, default=2, help="agreeing valid reads needed per plate")
     ap.add_argument("--max-frames", type=int, default=0)
+    ap.add_argument("--region", default="IN", choices=["IN", "UK", "ANY"],
+                    help="plate format rules; the 'Traffic Dataset' videos are British (UK)")
+    ap.add_argument("--min-track-frames", type=int, default=5,
+                    help="count a vehicle only if its track lasts this many frames")
     ap.add_argument("--save-video", action="store_true")
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args()
@@ -54,7 +59,7 @@ def main():
     out = a.out or Path("outputs") / a.source.stem
     out.mkdir(parents=True, exist_ok=True)
     pipe = ANPRPipeline(a.weights, imgsz=a.imgsz, conf=a.conf, device=a.device,
-                        ocr_every=a.ocr_every, min_votes=a.min_votes)
+                        ocr_every=a.ocr_every, min_votes=a.min_votes, region=a.region)
 
     if a.source.suffix.lower() in IMG_EXTS:
         pipe.reset(min_votes=1)
@@ -90,10 +95,11 @@ def main():
     plates, all_plates = pipe.plates(), pipe.plates(include_unread=True)
     write_csv(out / "plates.csv", plates)
     write_csv(out / "plates_all.csv", all_plates)
-    counts = pipe.vehicle_counts()
+    counts = pipe.vehicle_counts(min_frames=1 if frames == 1 else a.min_track_frames)
     summary = {"source": str(a.source), "frames": frames, "seconds": round(secs, 1),
                "fps": round(frames / secs, 2) if secs else None, "weights": a.weights, "imgsz": a.imgsz,
-               "min_votes": a.min_votes, "ocr_every": a.ocr_every, "vehicle_counts": counts,
+               "region": a.region, "min_votes": a.min_votes, "ocr_every": a.ocr_every,
+               "min_track_frames": a.min_track_frames, "vehicle_counts": counts,
                "plate_tracks": len(all_plates), "plates_read": len(plates)}
     (out / "counts.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))

@@ -15,7 +15,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 | "Performed OCR in real time", "Improved OCR accuracy" | OCR **never measured**. `outputs/logs/plate_logs.csv`: 0/38 reads are valid plates. |
 | "Tracking improved OCR consistency significantly" | Not measured. Each track is OCR'd once, on its first frame with conf ≥ 0.7. |
 | "Organizing train/validation/test splits" | Split unseeded (training itself used seed 0). Test = 179 images, all labelled, never used for training or checkpoint choice → usable held-out set. |
-| Indian traffic ANPR | Data also contains **Mexico City (CDMX) plates** (report pp. 35–36: K02-BAJ, J95-BCS, A-5613-C; the same plate appears in several images). |
+| Indian traffic ANPR | The "Traffic Dataset" **videos are British** (UK plates, 4K); data also contains **Mexico City (CDMX) plates** (report pp. 35–36: K02-BAJ, J95-BCS, A-5613-C; the same plate appears in several images). |
 | EDA table (report p. 23): Car 4116, Number Plate 479, **Blur Number Plate 1149**, Two Wheeler 1598, Auto 1072, Bus 305, Truck 435 | These are the raw "Traffic Dataset" classes. `remap_and_merge_datasets.py` maps **both** Number Plate and Blur Number Plate → class 3. So many "plates" the detector is scored on are unreadable by design. Detection AP for plates ≠ readable plates. |
 
 ## Data and weights (NOT in git)
@@ -90,4 +90,5 @@ Run every script from the repo root.
 - Detector (held-out test, split v2): YOLOv8s mAP50 0.743 / YOLOv8l 0.707 (reported 0.985 was leaked val). Deploy: `models/yolov8s_v2.pt`.
 - OCR on hand-labelled GT crops (37 Indian, 13 unique plates): EasyOCR legacy 0/37; best EasyOCR 2/37; **fast-plate-ocr + correction 6/37, 67 % precision** (CER raw 0.23). Correction made strict so it never invents plates from truncated reads.
 - **New (10 Nov): `ANPRPipeline`** (detect + ByteTrack + fastplate + correct + multi-frame voting), used by the rewritten app and `tools/run_video.py`; legacy scripts removed. 50 tests incl. a fake-detector pipeline test.
-- Next: run `tools/eval_end2end.py` (single-frame end-to-end number) and `tools/run_video.py` on a traffic clip (fps on MX250, plates voted); then fine-tune fast-plate-ocr on Indian plates (Kaggle); README rewrite with honest results; FastAPI + Docker; bootstrap CIs.
+- End-to-end single frame: detector finds 100 % of readable Indian test plates; 5/37 read, 71 % of logged plates correct. Video11 is British → use `--region UK`. Pipeline speed on MX250 at 4K: 2.2 fps.
+- Next: `run_video.py --region UK` on video11 to see voting work; then fine-tune fast-plate-ocr on Indian plates (Kaggle); README rewrite with honest results; FastAPI + Docker; bootstrap CIs.

@@ -33,7 +33,7 @@ from pathlib import Path
 import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from anpr.ocr import ALLOWLIST, preprocess, read_plate  # noqa: E402
+from anpr.ocr import ALLOWLIST, fastplate_reader, preprocess, read_plate  # noqa: E402
 from anpr.plate_text import cer, clean  # noqa: E402
 
 
@@ -57,62 +57,6 @@ def add_margin(crop, fx: float = 0.08, fy: float = 0.15):
     h, w = crop.shape[:2]
     px, py = max(2, int(w * fx)), max(2, int(h * fy))
     return cv2.copyMakeBorder(crop, py, py, px, px, cv2.BORDER_REPLICATE)
-
-
-def _patch_fastplate_download(tries: int = 8):
-    """fast-plate-ocr downloads its model from GitHub releases with a single
-    urllib call, which fails on a transient 504. Retry with back-off and a
-    browser-like User-Agent; if it still fails, print the URL and the target
-    path so the file can be downloaded by hand and dropped in place."""
-    import time
-    import urllib.request
-
-    from fast_plate_ocr.inference import hub
-
-    def download(url, filename):
-        filename = Path(filename)
-        filename.parent.mkdir(parents=True, exist_ok=True)
-        last = None
-        for k in range(tries):
-            try:
-                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, timeout=60) as r:
-                    data = r.read()
-                tmp = filename.with_suffix(filename.suffix + ".part")
-                tmp.write_bytes(data)
-                tmp.replace(filename)
-                print(f"downloaded {filename.name} ({len(data) / 1e6:.1f} MB)")
-                return
-            except Exception as e:  # noqa: BLE001
-                last = e
-                wait = min(60, 5 * 2 ** k)
-                print(f"download failed ({e}); retry {k + 1}/{tries} in {wait}s")
-                time.sleep(wait)
-        raise SystemExit(f"\nCould not download after {tries} tries ({last}).\n"
-                         f"Download this URL in your browser:\n  {url}\n"
-                         f"and save it exactly as:\n  {filename}\nThen run the command again.")
-
-    hub._download_with_progress = download
-
-
-def fastplate_reader(model_name: str):
-    """Plate-specific recogniser (fast-plate-ocr, ONNX). Returns crop(BGR) -> cleaned text."""
-    import tempfile
-
-    from fast_plate_ocr import LicensePlateRecognizer
-
-    _patch_fastplate_download()
-    m = LicensePlateRecognizer(model_name)
-    tmp = Path(tempfile.mkdtemp()) / "crop.png"
-
-    def read(crop):
-        if crop is None or crop.size == 0:
-            return ""
-        cv2.imwrite(str(tmp), crop)          # pass a file: the library handles its own colour/resize
-        out = m.run(str(tmp))
-        p = out[0] if isinstance(out, (list, tuple)) and out else out
-        return clean(str(getattr(p, "plate", p)))   # v1.1 returns objects with .plate, older versions str
-    return read
 
 
 def per_plate(recs):

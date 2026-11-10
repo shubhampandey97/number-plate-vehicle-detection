@@ -52,7 +52,8 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 | 3b | Plate-specific OCR: (i) zero-shot fast-plate-ocr global model (`eval_ocr.py --fastplate cct-s-v2-global-model`), (ii) fine-tune on Indian plates (Kaggle), (iii) multi-frame voting in the tracker | light / GPU | **(i) done: 10/42 exact, CER 0.22** |
 | 4 | Detector on labelled test split (`tools/eval_detector_test.py`) | heavy on CPU, run after TB training | script ready |
 | 5 | Recover provenance (hash-match merged images to raw copies), then if leakage is found: group-aware re-split with a seed, retrain | light / GPU | todo |
-| 6 | Wire `anpr.ocr` into tracker + app; multi-frame voting; tracker at 960 | light | todo |
+| 6 | Wire `anpr.ocr` into tracker + app; multi-frame voting; tracker at 960 | light | **done 10 Nov**: `src/anpr/pipeline.py` + `voting.py`, app rewritten, `tools/run_video.py`, legacy/ removed |
+| 6b | End-to-end single-frame eval (`tools/eval_end2end.py`) and a video run (`tools/run_video.py`) | light | ready |
 | 7 | ONNX / FP16 export, FPS + latency benchmark CPU vs GPU | moderate | todo |
 | 8 | FastAPI `/read-plate`, Docker, README results table, model card | light | todo |
 
@@ -71,6 +72,7 @@ Scope: the `main` branch as on GitHub (`528c31b`). File paths below are from bef
 - [x] fast-plate-ocr cct-s-v2-global, zero-shot (8 Nov): **10/42 Indian crops exact (0.238), per-plate 0.425, CER 0.219; plates >=20 px 7/13 exact (CER 0.13); <20 px 3/29.** vs best EasyOCR 2/42 (CER 0.86). Typical errors: last or first characters dropped at the crop edge (DL9CU485, 30CM1550).
 - [x] Format correction made stricter (8 Nov): with a good reader it was "repairing" truncated reads into valid-looking wrong plates (DL9CU485 -> DL9C0485, DL1TT055 -> DL1T7055, AP16D043 -> AP160043). Now: Delhi needs >= 2 series letters; plates without series letters accepted only exactly as read. Remaining undetectable errors (DL9CU4855) need multi-frame voting.
 - [ ] Label clean-up before quoting OCR numbers (the 4 "lost" correct reads with correction were 4897861, NU52RGY, 88184P1 x2: non-Indian plates tagged IN): same plate labelled two ways (DL3CNN1550 / DL3CCN1550); non-Indian plates tagged IN (NU52RGY, 88184P1, 4897861, R628JPK); DL9CA06084 has 5 final digits.
+- [x] Goal 6 (10 Nov): one deployed path. Fixes old app bugs: vehicles were counted per frame (a car in 100 frames = 100 cars), detector at 640 px, single EasyOCR read per plate. Now: ByteTrack ids (count once per track), 960 px, fastplate OCR on every frame, format check, a plate is logged only when >= 2 valid reads agree.
 - [ ] Goal 1e: bootstrap CIs
 - [ ] Goal 2 labels
 - [ ] Goal 3 run

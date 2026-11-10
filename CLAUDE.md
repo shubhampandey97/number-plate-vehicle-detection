@@ -34,7 +34,10 @@ src/anpr/                  shared library (use this, don't copy-paste OCR code a
   plate_text.py            clean / is_valid (Indian formats + BH) / correct (O<->0, I<->1 …, India-only)
                            / join_lines (two-line plates) / cer
   labels.py                parse_line: YOLO box OR polygon line -> (cls, cx, cy, w, h). Labels mix both formats!
-  ocr.py                   crop_box, preprocess(variant: gray|otsu|adaptive|clahe, fixed height 96), read_plate(reader, crop)
+  voting.py                PlateVoter (per-track, format-valid reads, weighted by plate height, min_votes) + plate->vehicle
+  pipeline.py              ANPRPipeline: YOLO track (ByteTrack) -> fastplate OCR -> correct() -> voting; counts once per track.
+                           THE deployed path: app, tools/run_video.py and eval_end2end use it
+  ocr.py                   fastplate_reader (default, plate-trained, download retry) + EasyOCR read_plate (comparison); crop_box, preprocess(variant: gray|otsu|adaptive|clahe, fixed height 96), read_plate(reader, crop)
 tools/                     evaluation CLIs (argparse, paths relative to repo root)
   check_leakage.py         dHash near-duplicates ACROSS splits -> docs/leakage/leakage_report.md + cross_split_pairs.csv
   inspect_leakage.py       contact sheets of pairs (git-ignored jpgs) + scene groups (union-find, any split) -> groups.csv
@@ -43,16 +46,15 @@ tools/                     evaluation CLIs (argparse, paths relative to repo roo
   make_ocr_labelset.py     crops GT plate boxes -> eval/ocr_gt/crops + ocr_gt.csv to hand-label
   label_ocr_app.py         Streamlit labeller: one crop at a time -> writes eval/ocr_gt/ocr_gt.csv (streamlit run tools/label_ocr_app.py)
   eval_ocr.py              legacy vs new OCR: exact match, CER, read rate, precision; by lines/height/condition/country
+  run_video.py             CLI: full pipeline on a video/image -> outputs/<name>/plates.csv, plates_all.csv, counts.json, annotated.mp4
+  eval_end2end.py          single-frame end-to-end: detector box -> OCR -> correct vs hand labels -> docs/results/end2end.*
   eval_detector_test.py    detector metrics on labelled test images (default weights models/yolov8l_baseline.pt)
 tests/                     pytest (37 tests); CI in .github/workflows/ci.yml
-app/streamlit_app.py       dashboard (Image / Video / Live), loads models/yolov8l_baseline.pt
+app/streamlit_app.py       dashboard (Image / Video / Live) on ANPRPipeline; model selector; plates + counts tables, CSV
 scripts/train.py           YOLOv8l training config (GPU, device=0), writes runs/train/ (git-ignored)
 scripts/data_prep/         analysis, cleaning, conversion (COCO->YOLO), merging (remap_and_merge_datasets = the real merge),
                            splitting (split_final_dataset = the real split, UNSEEDED), validation
 scripts/eda/               class frequency, image quality, lighting/weather, augmentation previews, annotations, stats
-legacy/                    old pipeline, replaced step by step by src/anpr (see legacy/README.md)
-  ocr/plate_ocr.py, ocr/video_ocr.py, tracking/vehicle_tracking.py (imgsz 640), analytics/traffic_analytics.py (imgsz 640),
-  inference/predict.py, inference/predict_and_crop.py
 notebooks/kaggle_train_v2.ipynb  Kaggle GPU: trains YOLOv8s + YOLOv8l @960 on split v2, val+test metrics, zips results
 results/v2_yolov8s_960/, results/v2_yolov8l_960/, results/summary_v2.md   Kaggle runs on split v2 (val + test metrics)
 results/baseline_yolov8l/  args.yaml, results.csv, curves, confusion matrices, val batch previews, plate_logs_legacy.csv
@@ -80,12 +82,12 @@ Run every script from the repo root.
 - Every evaluation script writes its results to `docs/results/` (markdown + csv/json) so numbers in the README can be traced to a file.
 - Keep the deployed path and the evaluated path the same: tracker, app and eval must all call `anpr.ocr.read_plate`.
 - Report detector metrics as "validation" until `eval_detector_test.py` has run; report per-class AP, not just the mean (Person has only 104 train instances).
-- Don't rewrite or delete the legacy scripts until the replacement is wired in and tested. Then remove the duplicates in one commit.
+- legacy/ was deleted on 10 Nov after ANPRPipeline replaced it (still in git history). The original EasyOCR method survives only as `legacy_read` in eval_ocr.py, for comparison.
 - Commit messages end with the co-author line. Work on `upgrade-v2`; open a PR to `main` per finished goal.
 
-## Current state (8 Nov 2026)
-- Done: audit, `src/anpr`, tools, 37 tests, CI, restructure, leakage proof, split v2 (903 unique images), **Kaggle retrain**.
-- **Honest detector numbers (held-out test, 123 images / 82 scenes):** YOLOv8s mAP50 0.743 / mAP50-95 0.519; YOLOv8l 0.707 / 0.508. Number_plate 0.851 (s). Weak: Person 0.43, Bus 0.54 (few examples). The reported 0.985 was leaked val. Deploy model: `models/yolov8s_v2.pt`.
-- Local GPU (MX250) is for inference only; train on Kaggle (`notebooks/kaggle_train_v2.ipynb`).
-- **OCR (8 Nov):** 250 test crops labelled → 48 readable (19 %) = 20 unique plates. EasyOCR: legacy 0/42 Indian crops, new best 1/42. General OCR can't read these plates; next is a plate-specific recogniser + multi-frame voting. Labels need small clean-up (see audit Status).
-- Next: (1) scene-level bootstrap CIs on test (local inference with yolov8s_v2), (2) `make_ocr_labelset.py --root data/final_v2` + hand-label ~200 plates → `eval_ocr.py`, (3) switch app + legacy scripts to `models/yolov8s_v2.pt` and `anpr.ocr`, imgsz 960, multi-frame voting, (4) ONNX/OpenVINO benchmark, (5) FastAPI + Docker, README results.
+## Current state (10 Nov 2026)
+- Branch `upgrade-v2` is pushed to GitHub (backup). Not merged to main yet.
+- Detector (held-out test, split v2): YOLOv8s mAP50 0.743 / YOLOv8l 0.707 (reported 0.985 was leaked val). Deploy: `models/yolov8s_v2.pt`.
+- OCR on hand-labelled GT crops (37 Indian, 13 unique plates): EasyOCR legacy 0/37; best EasyOCR 2/37; **fast-plate-ocr + correction 6/37, 67 % precision** (CER raw 0.23). Correction made strict so it never invents plates from truncated reads.
+- **New (10 Nov): `ANPRPipeline`** (detect + ByteTrack + fastplate + correct + multi-frame voting), used by the rewritten app and `tools/run_video.py`; legacy scripts removed. 50 tests incl. a fake-detector pipeline test.
+- Next: run `tools/eval_end2end.py` (single-frame end-to-end number) and `tools/run_video.py` on a traffic clip (fps on MX250, plates voted); then fine-tune fast-plate-ocr on Indian plates (Kaggle); README rewrite with honest results; FastAPI + Docker; bootstrap CIs.

@@ -164,7 +164,6 @@ app/                 Streamlit dashboard (image / video / webcam)
 scripts/train.py     YOLOv8l training config
 scripts/data_prep/   dataset engineering: analysis, cleaning, COCO->YOLO, merging/remapping, split, validation
 scripts/eda/         EDA scripts (class frequency, image quality, lighting, augmentation, annotations)
-legacy/              original OCR / tracking / analytics scripts, being replaced by src/anpr
 results/             curated results per model (baseline_yolov8l: curves, confusion matrix, results.csv)
 reports/             EDA and dataset-engineering reports
 docs/                audit, leakage reports, evaluation results
@@ -354,32 +353,24 @@ The dashboard supports:
 
 ---
 
-# 🎥 Video OCR
+# 🎥 Command line: video or image
 
-Run real-time video inference:
+The app and this tool run the same pipeline (`src/anpr/pipeline.py`): YOLOv8s (split v2, 960 px) →
+ByteTrack → plate-trained OCR (fast-plate-ocr) → Indian-format check → voting over frames.
+Vehicles are counted once per track; a plate is logged only when at least 2 frames agree.
 
 ```bash
-python legacy/ocr/video_ocr.py
+python tools/run_video.py path/to/video.mp4 --save-video   # writes outputs/<name>/plates.csv, counts.json, annotated.mp4
+python tools/run_video.py path/to/image.jpg
 ```
 
----
-
-# 🚗 Vehicle Tracking
-
-Run tracking pipeline:
+# 📏 Evaluation tools
 
 ```bash
-python legacy/tracking/vehicle_tracking.py
-```
-
----
-
-# 📈 Traffic Analytics
-
-Run analytics system:
-
-```bash
-python legacy/analytics/traffic_analytics.py
+python tools/check_leakage.py --root data/final_v2        # near-duplicates across splits (expect 0)
+python tools/eval_detector_test.py                         # detector on the held-out test split
+python tools/eval_ocr.py --gpu --fastplate cct-s-v2-global-model   # OCR on hand-labelled crops
+python tools/eval_end2end.py                               # detector + OCR on single test frames
 ```
 
 ---
@@ -399,9 +390,8 @@ cd number-plate-vehicle-detection
 # 2️⃣ Create Environment
 
 ```bash
-conda create -n npvd_env python=3.11
-
-conda activate npvd_env
+conda env create -f environment.yml
+conda activate anpr_env
 ```
 
 ---
@@ -409,16 +399,18 @@ conda activate npvd_env
 # 3️⃣ Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# PyTorch first (CUDA 12.6 build shown; use the cpu index URL without an NVIDIA GPU)
+pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q tests
 ```
 
 ---
 
 # 4️⃣ Train Model
 
-```bash
-python training/train.py
-```
+Training needs a real GPU: use `notebooks/kaggle_train_v2.ipynb` on Kaggle (T4, ~50 min for YOLOv8s),
+or `python scripts/train.py` locally. Put the trained weights in `models/` (see `models/README.md`).
 
 ---
 

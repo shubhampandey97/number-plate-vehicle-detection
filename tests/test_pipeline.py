@@ -73,11 +73,14 @@ def test_video_counts_each_vehicle_once_and_votes_plate(monkeypatch):
         out = pipe.process(frame(k))
         assert out.shape == (480, 640, 3)
     assert pipe.vehicle_counts() == {"Bus": 1, "Car": 1}          # not 6 cars + 4 buses
-    plates = pipe.plates()
-    assert len(plates) == 1
-    p = plates[0]
+    tracks = pipe.plates_by_track()
+    assert len(tracks) == 1
+    p = tracks[0]
     assert p["plate"] == "DL9CU4856" and p["agreeing_reads"] == 3 and p["valid_reads"] == 4
     assert p["ocr_reads"] == 6 and p["vehicle"] == "Car" and p["vehicle_track"] == 1
+    log = pipe.plates()                      # pooled by text; DL9CU4855 (1 edit away) is merged in
+    assert [(r["plate"], r["reads"], r["vehicle"], r["merged_variants"]) for r in log] == \
+        [("DL9CU4856", 4, "Car", "DL9CU4855")]
 
 
 def test_still_image_single_read(monkeypatch):
@@ -92,7 +95,7 @@ def test_small_plates_are_not_read(monkeypatch):
     pipe.min_plate_h = 20                                       # fake plate is 16 px tall
     pipe.reset()
     pipe.process(frame(0))
-    assert pipe.plates(include_unread=True) == []
+    assert pipe.plates_by_track(include_unread=True) == []
 
 
 def test_class_flicker_counts_vehicle_once(monkeypatch):

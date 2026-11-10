@@ -32,6 +32,8 @@ from .ocr import DEFAULT_FASTPLATE, crop_box, fastplate_reader
 from .plate_text import correct
 from .voting import PlateVoter, assign_plate_to_vehicle
 
+ANPR_TRACKER = str(Path(__file__).resolve().parents[2] / "configs" / "bytetrack_anpr.yaml")
+
 PLATE_CLASS = "Number_plate"
 COLORS = {"Number_plate": (0, 0, 255), "Car": (0, 200, 0), "Bike": (255, 160, 0), "Auto": (0, 200, 255),
           "Bus": (200, 0, 200), "Truck": (120, 60, 0), "Person": (200, 200, 200)}
@@ -40,7 +42,7 @@ COLORS = {"Number_plate": (0, 0, 255), "Car": (0, 200, 0), "Bike": (255, 160, 0)
 class ANPRPipeline:
     def __init__(self, weights: str | Path = "models/yolov8s_v2.pt", imgsz: int = 960, conf: float = 0.35,
                  device=None, ocr_model: str = DEFAULT_FASTPLATE, ocr_every: int = 1,
-                 min_plate_h: int = 10, min_votes: int = 2, tracker: str = "bytetrack.yaml",
+                 min_plate_h: int = 10, min_votes: int = 2, tracker: str = ANPR_TRACKER,
                  region: str = "IN"):
         from ultralytics import YOLO
 
@@ -116,12 +118,27 @@ class ANPRPipeline:
             cv2.rectangle(img, (x1, y1), (x2, y2), col, th)
             label = f'{d["cls"]} #{d["id"]}' if d["id"] is not None and d["id"] < 100000 else d["cls"]
             if d["cls"] == PLATE_CLASS:
-                text = self.voter.result(d["id"]).text
+                text = self.voter.result(d["id"]).text      # per-track view (live overlay)
                 label = text or "plate ..."
             cv2.putText(img, label, (x1, max(int(12 * s), y1 - int(6 * s))), cv2.FONT_HERSHEY_SIMPLEX, fs, col, th)
         return img
 
-    def plates(self, include_unread: bool = False) -> list[dict]:
+    def plates(self, min_reads: int | None = None) -> list[dict]:
+        """The plate log: one row per distinct plate text, pooled over tracks
+        (robust to tracker id swaps). min_reads defaults to max(min_votes, 3) on
+        video and 1 for still images (min_votes=1)."""
+        n = min_reads if min_reads is not None else (1 if self.voter.min_votes <= 1 else max(3, self.voter.min_votes))
+        rows = self.voter.plate_log(min_reads=n)
+        for r in rows:
+            vehicles = Counter(self.plate_vehicle.get(t, (None, None))[1] for t in r["tracks"])
+            vehicles.pop(None, None)
+            r["vehicle"] = vehicles.most_common(1)[0][0] if vehicles else None
+            r["tracks"] = " ".join(map(str, r["tracks"]))
+            r["merged_variants"] = " ".join(r["merged_variants"])
+        return rows
+
+    def plates_by_track(self, include_unread: bool = False) -> list[dict]:
+        """Diagnostic: the voted text per plate TRACK (sensitive to tracker id swaps)."""
         out = []
         for r in self.voter.results():
             if not r.text and not include_unread:

@@ -21,6 +21,7 @@ class TrackVotes:
     reads: int = 0                                   # OCR attempts on this track
     votes: dict = field(default_factory=lambda: defaultdict(float))   # text -> weight
     counts: dict = field(default_factory=lambda: defaultdict(int))    # text -> n reads
+    frames: dict = field(default_factory=dict)       # text -> (first, last) frame
     first_frame: int = -1
     last_frame: int = -1
 
@@ -51,6 +52,8 @@ class PlateVoter:
         if text:
             t.votes[text] += max(weight, 1e-6)
             t.counts[text] += 1
+            f0, _ = t.frames.get(text, (frame, frame))
+            t.frames[text] = (f0, frame)
 
     def result(self, track_id: int) -> PlateResult:
         t = self.tracks.get(track_id)            # .get: asking must not create an entry
@@ -68,6 +71,55 @@ class PlateVoter:
 
     def results(self) -> list[PlateResult]:
         return [self.result(tid) for tid in sorted(self.tracks)]
+
+    def plate_log(self, min_reads: int = 3, merge_dist: int = 1) -> list[dict]:
+        """Plates by TEXT, pooled over all tracks.
+
+        Trackers swap ids in dense queues (one id ends up on several cars, or one
+        car gets several ids). Pooling every valid read by its text makes the log
+        robust to both: a plate is logged once if >= `min_reads` reads agree,
+        and texts within `merge_dist` edits of a stronger text are folded into it
+        (e.g. NA13NFU into NA13NRU) instead of becoming a second, wrong plate.
+        """
+        pool: dict[str, dict] = {}
+        for tid, t in self.tracks.items():
+            for text, n in t.counts.items():
+                p = pool.setdefault(text, {"plate": text, "reads": 0, "weight": 0.0, "tracks": set(),
+                                           "first_frame": t.frames[text][0], "last_frame": t.frames[text][1]})
+                p["reads"] += n
+                p["weight"] += t.votes[text]
+                p["tracks"].add(tid)
+                p["first_frame"] = min(p["first_frame"], t.frames[text][0])
+                p["last_frame"] = max(p["last_frame"], t.frames[text][1])
+        kept: list[dict] = []
+        for p in sorted(pool.values(), key=lambda q: (-q["weight"], -q["reads"])):
+            near = next((k for k in kept if edit_distance(k["plate"], p["plate"]) <= merge_dist), None)
+            if near is not None:
+                near["merged"].append(p["plate"])
+                near["reads"] += p["reads"]
+                near["weight"] += p["weight"]
+                near["tracks"] |= p["tracks"]
+                near["first_frame"] = min(near["first_frame"], p["first_frame"])
+                near["last_frame"] = max(near["last_frame"], p["last_frame"])
+            else:
+                kept.append({**p, "merged": []})
+        out = []
+        for k in kept:
+            if k["reads"] >= min_reads:
+                out.append({"plate": k["plate"], "reads": k["reads"], "tracks": sorted(k["tracks"]),
+                            "merged_variants": k["merged"], "first_frame": k["first_frame"],
+                            "last_frame": k["last_frame"]})
+        return sorted(out, key=lambda r: r["first_frame"])
+
+
+def edit_distance(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
 
 
 def contains(outer, inner_center) -> bool:

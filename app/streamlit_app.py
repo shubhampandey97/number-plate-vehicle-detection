@@ -74,13 +74,13 @@ def show_results():
         st.subheader("Plates")
         plates = pd.DataFrame(pipe.plates())
         if plates.empty:
-            st.info("No plate reached an agreed, format-valid reading. Most plates in this footage are "
-                    "too small or blurred to read; see 'all plate tracks' below.")
+            st.info("No plate reached enough agreeing, format-valid reads. Check the plate format "
+                    "(IN/UK/ANY) in the sidebar; very small or blurred plates can't be read.")
         else:
             st.dataframe(plates, use_container_width=True)
             st.download_button("Download plates CSV", plates.to_csv(index=False).encode(), "plates.csv", "text/csv")
-        with st.expander("All plate tracks, including unread ones"):
-            st.dataframe(pd.DataFrame(pipe.plates(include_unread=True)), use_container_width=True)
+        with st.expander("Per plate track (diagnostic; tracker ids can swap between cars)"):
+            st.dataframe(pd.DataFrame(pipe.plates_by_track(include_unread=True)), use_container_width=True)
 
 
 # ------------------------------------------------------------------- modes

@@ -92,7 +92,7 @@ for label_path in label_files:
                 invalid_annotations.append(label_path)
                 break
 
-    except:
+    except Exception:
         invalid_annotations.append(label_path)
 
 # REPORT

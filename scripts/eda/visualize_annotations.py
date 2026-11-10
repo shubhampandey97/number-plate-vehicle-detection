@@ -143,7 +143,7 @@ for image_file in image_files:
             try:
                 class_id = int(parts[0])
 
-            except:
+            except Exception:
                 print(f"Invalid class ID in {label_file}")
                 continue
 
@@ -155,7 +155,7 @@ for image_file in image_files:
             try:
                 coords = list(map(float, parts[1:]))
 
-            except:
+            except Exception:
                 print(f"Invalid coordinates in {label_file}")
                 continue
 

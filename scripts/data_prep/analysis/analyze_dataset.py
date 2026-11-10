@@ -3,8 +3,6 @@ from collections import Counter
 import cv2
 import matplotlib.pyplot as plt
 import pandas as pd
-import os
-import numpy as np
 
 # CLASS NAMES
 CLASS_NAMES = {
@@ -107,7 +105,7 @@ def analyze_dataset():
                 try:
                     class_id = int(values[0])
 
-                except:
+                except Exception:
                     invalid_annotations += 1
                     continue
 
@@ -129,7 +127,7 @@ def analyze_dataset():
                         bbox_widths.append(bw)
                         bbox_heights.append(bh)
 
-                except:
+                except Exception:
                     invalid_annotations += 1
                     continue
 

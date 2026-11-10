@@ -63,7 +63,7 @@ for label_file in label_files:
         try:
             class_id = int(parts[0])
 
-        except:
+        except Exception:
             invalid_annotations += 1
             continue
 

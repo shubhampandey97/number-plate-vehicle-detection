@@ -117,7 +117,7 @@ for split in SPLITS:
 
                         break
 
-            except:
+            except Exception:
 
                 invalid_annotations.append(file)
 

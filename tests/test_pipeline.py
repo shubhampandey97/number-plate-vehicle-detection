@@ -28,12 +28,21 @@ class _Boxes:
         return len(self.cls)
 
 
+class FakeTracker:
+    def __init__(self):
+        self.resets = 0
+
+    def reset(self):
+        self.resets += 1
+
+
 class FakeYOLO:
     """Frame k: a car (track 1) with its plate (track 2), plus a bus (track 3) from frame 2 on."""
     names = {0: "Bike", 1: "Bus", 2: "Car", 3: "Number_plate", 4: "Person", 5: "Truck", 6: "Auto"}
 
     def __init__(self, *_):
-        pass
+        self.persist_calls = []
+        self.predictor = None
 
     def _frame(self, frame, track):
         k = int(frame[0, 0, 0])
@@ -43,6 +52,9 @@ class FakeYOLO:
         return [types.SimpleNamespace(boxes=_Boxes(dets, track))]
 
     def track(self, frame, **kw):
+        self.persist_calls.append(kw.get("persist"))
+        if self.predictor is None:                      # like Ultralytics: tracker made on first call
+            self.predictor = types.SimpleNamespace(trackers=[FakeTracker()])
         return self._frame(frame, True)
 
     def predict(self, frame, **kw):
@@ -73,11 +85,16 @@ def test_video_counts_each_vehicle_once_and_votes_plate(monkeypatch):
         out = pipe.process(frame(k))
         assert out.shape == (480, 640, 3)
     assert pipe.vehicle_counts() == {"Bus": 1, "Car": 1}          # not 6 cars + 4 buses
-    plates = pipe.plates()
-    assert len(plates) == 1
-    p = plates[0]
+    tracks = pipe.plates_by_track()
+    assert len(tracks) == 1
+    p = tracks[0]
     assert p["plate"] == "DL9CU4856" and p["agreeing_reads"] == 3 and p["valid_reads"] == 4
     assert p["ocr_reads"] == 6 and p["vehicle"] == "Car" and p["vehicle_track"] == 1
+    log = pipe.plates()                      # track mode: the single DL9CU4855 read loses inside the track
+    assert [(r["plate"], r["reads"], r["vehicle"], r["merged_variants"]) for r in log] == \
+        [("DL9CU4856", 3, "Car", "")]
+    pooled = pipe.plates(by="reads")         # reads mode: it is merged in as a 1-edit variant
+    assert [(r["plate"], r["reads"], r["merged_variants"]) for r in pooled] == [("DL9CU4856", 4, "DL9CU4855")]
 
 
 def test_still_image_single_read(monkeypatch):
@@ -92,4 +109,29 @@ def test_small_plates_are_not_read(monkeypatch):
     pipe.min_plate_h = 20                                       # fake plate is 16 px tall
     pipe.reset()
     pipe.process(frame(0))
-    assert pipe.plates(include_unread=True) == []
+    assert pipe.plates_by_track(include_unread=True) == []
+
+
+def test_class_flicker_counts_vehicle_once(monkeypatch):
+    pipe = make_pipeline(monkeypatch, [""] * 10)
+    pipe.reset()
+    # the same track id seen as Car 3 times and Truck 2 times -> one Car
+    for cls in ["Car", "Truck", "Car", "Truck", "Car"]:
+        pipe.track_classes[42][cls] += 1
+    pipe.track_classes[43]["Truck"] += 1                       # seen once only
+    assert pipe.vehicle_counts() == {"Car": 1, "Truck": 1}
+    assert pipe.vehicle_counts(min_frames=2) == {"Car": 1}
+
+
+def test_tracker_persists_and_is_reset_between_videos(monkeypatch):
+    # Ultralytics fixes `persist` on the first track() call; the pipeline must always
+    # pass persist=True and reset the tracker itself between videos.
+    pipe = make_pipeline(monkeypatch, [""] * 20)
+    pipe.reset()
+    for k in range(3):
+        pipe.process(frame(k))
+    assert pipe.model.persist_calls == [True, True, True]
+    tracker = pipe.model.predictor.trackers[0]
+    assert tracker.resets == 0
+    pipe.reset()                                         # next video
+    assert tracker.resets == 1

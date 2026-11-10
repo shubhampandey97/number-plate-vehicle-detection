@@ -1,13 +1,15 @@
 """Run the full ANPR pipeline on a video (or an image) from the command line.
 
 Writes to --out (default outputs/<video name>/):
-  plates.csv        one row per plate track that reached a voted reading
-  plates_all.csv    every plate track, including ones never read reliably
+  plates.csv        the plate log: one row per distinct plate text, pooled over
+                    all tracks (robust to tracker id swaps), >= --min-reads reads
+  plate_tracks.csv  diagnostic: voted text per plate track, incl. unread tracks
   counts.json       vehicles counted once per track
   annotated.mp4     (with --save-video) boxes, track ids, voted plate text
 
 Usage (repo root, anpr_env):
     python tools/run_video.py path/to/video.mp4 --save-video
+    python tools/run_video.py "data/Traffic Dataset/video11.mp4" --region UK --save-video   # British footage
     python tools/run_video.py path/to/image.jpg
     python tools/run_video.py video.mp4 --ocr-every 2 --max-frames 600   # faster on the MX250
 """
@@ -28,11 +30,14 @@ from anpr.pipeline import ANPRPipeline  # noqa: E402
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp"}
 
 
-def write_csv(path, rows):
-    cols = ["plate", "agreeing_reads", "valid_reads", "ocr_reads", "vote_share", "first_frame",
-            "last_frame", "plate_track", "vehicle_track", "vehicle"]
+TRACK_COLS = ["plate", "agreeing_reads", "valid_reads", "ocr_reads", "vote_share", "first_frame",
+              "last_frame", "plate_track", "vehicle_track", "vehicle"]
+LOG_COLS = ["plate", "reads", "vehicle", "first_frame", "last_frame", "tracks", "merged_variants"]
+
+
+def write_csv(path, rows, cols):
     with open(path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
+        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
         w.writeheader()
         w.writerows(rows)
 
@@ -45,8 +50,15 @@ def main():
     ap.add_argument("--conf", type=float, default=0.35)
     ap.add_argument("--device", default=None, help="0 for GPU, cpu for CPU (default: auto)")
     ap.add_argument("--ocr-every", type=int, default=1, help="read plates every N frames")
-    ap.add_argument("--min-votes", type=int, default=2, help="agreeing valid reads needed per plate")
+    ap.add_argument("--min-votes", type=int, default=2, help="agreeing valid reads per plate track (overlay)")
+    ap.add_argument("--min-reads", type=int, default=3, help="agreeing valid reads needed in the plate log")
+    ap.add_argument("--log-by", default="track", choices=["track", "reads"],
+                    help="track: each track votes first (default); reads: pool every read (if tracking is poor)")
     ap.add_argument("--max-frames", type=int, default=0)
+    ap.add_argument("--region", default="IN", choices=["IN", "UK", "ANY"],
+                    help="plate format rules; the 'Traffic Dataset' videos are British (UK)")
+    ap.add_argument("--min-track-frames", type=int, default=5,
+                    help="count a vehicle only if its track lasts this many frames")
     ap.add_argument("--save-video", action="store_true")
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args()
@@ -54,7 +66,7 @@ def main():
     out = a.out or Path("outputs") / a.source.stem
     out.mkdir(parents=True, exist_ok=True)
     pipe = ANPRPipeline(a.weights, imgsz=a.imgsz, conf=a.conf, device=a.device,
-                        ocr_every=a.ocr_every, min_votes=a.min_votes)
+                        ocr_every=a.ocr_every, min_votes=a.min_votes, region=a.region)
 
     if a.source.suffix.lower() in IMG_EXTS:
         pipe.reset(min_votes=1)
@@ -81,25 +93,29 @@ def main():
             frames += 1
             if frames % 50 == 0:
                 print(f"frame {frames}/{n_total}  {frames / (time.time() - t0):.1f} fps  "
-                      f"plates so far: {len(pipe.plates())}", flush=True)
+                      f"plates so far: {len(pipe.plates(min_reads=a.min_reads))}", flush=True)
         cap.release()
         if writer:
             writer.release()
         secs = time.time() - t0
 
-    plates, all_plates = pipe.plates(), pipe.plates(include_unread=True)
-    write_csv(out / "plates.csv", plates)
-    write_csv(out / "plates_all.csv", all_plates)
-    counts = pipe.vehicle_counts()
+    plates = pipe.plates(min_reads=1 if frames == 1 else a.min_reads, by=a.log_by)
+    by_track = pipe.plates_by_track(include_unread=True)
+    write_csv(out / "plates.csv", plates, LOG_COLS)
+    write_csv(out / "plate_tracks.csv", by_track, TRACK_COLS)
+    counts = pipe.vehicle_counts(min_frames=1 if frames == 1 else a.min_track_frames)
     summary = {"source": str(a.source), "frames": frames, "seconds": round(secs, 1),
                "fps": round(frames / secs, 2) if secs else None, "weights": a.weights, "imgsz": a.imgsz,
-               "min_votes": a.min_votes, "ocr_every": a.ocr_every, "vehicle_counts": counts,
-               "plate_tracks": len(all_plates), "plates_read": len(plates)}
+               "region": a.region, "min_votes": a.min_votes, "ocr_every": a.ocr_every,
+               "min_track_frames": a.min_track_frames, "vehicle_counts": counts,
+               "min_reads": a.min_reads, "log_by": a.log_by, "plate_tracks": len(by_track),
+               "plates_logged": len(plates)}
     (out / "counts.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     for p in plates:
-        print(f'  {p["plate"]:12s} {p["agreeing_reads"]}/{p["valid_reads"]} agreeing valid reads '
-              f'({p["ocr_reads"]} attempts)  {p["vehicle"] or ""}')
+        merged = f'  (merged: {p["merged_variants"]})' if p["merged_variants"] else ""
+        print(f'  {p["plate"]:12s} {p["reads"]:4d} reads  frames {p["first_frame"]}-{p["last_frame"]}  '
+              f'tracks [{p["tracks"]}]  {p["vehicle"] or ""}{merged}')
     print(f"\nWrote {out}")
 
 

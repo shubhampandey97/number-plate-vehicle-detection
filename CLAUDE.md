@@ -15,7 +15,7 @@ Pipeline: YOLOv8l detection (7 classes) → plate crop → OpenCV preprocessing 
 | "Performed OCR in real time", "Improved OCR accuracy" | OCR **never measured**. `outputs/logs/plate_logs.csv`: 0/38 reads are valid plates. |
 | "Tracking improved OCR consistency significantly" | Not measured. Each track is OCR'd once, on its first frame with conf ≥ 0.7. |
 | "Organizing train/validation/test splits" | Split unseeded (training itself used seed 0). Test = 179 images, all labelled, never used for training or checkpoint choice → usable held-out set. |
-| Indian traffic ANPR | Data also contains **Mexico City (CDMX) plates** (report pp. 35–36: K02-BAJ, J95-BCS, A-5613-C; the same plate appears in several images). |
+| Indian traffic ANPR | The "Traffic Dataset" **videos are British** (UK plates, 4K); data also contains **Mexico City (CDMX) plates** (report pp. 35–36: K02-BAJ, J95-BCS, A-5613-C; the same plate appears in several images). |
 | EDA table (report p. 23): Car 4116, Number Plate 479, **Blur Number Plate 1149**, Two Wheeler 1598, Auto 1072, Bus 305, Truck 435 | These are the raw "Traffic Dataset" classes. `remap_and_merge_datasets.py` maps **both** Number Plate and Blur Number Plate → class 3. So many "plates" the detector is scored on are unreadable by design. Detection AP for plates ≠ readable plates. |
 
 ## Data and weights (NOT in git)
@@ -34,7 +34,8 @@ src/anpr/                  shared library (use this, don't copy-paste OCR code a
   plate_text.py            clean / is_valid (Indian formats + BH) / correct (O<->0, I<->1 …, India-only)
                            / join_lines (two-line plates) / cer
   labels.py                parse_line: YOLO box OR polygon line -> (cls, cx, cy, w, h). Labels mix both formats!
-  voting.py                PlateVoter (per-track, format-valid reads, weighted by plate height, min_votes) + plate->vehicle
+  voting.py                PlateVoter: per-track votes (overlay/diagnostic) + plate_log(): plates pooled by TEXT over all
+                           tracks, 1-edit variants merged (robust to tracker id swaps); edit_distance; plate->vehicle
   pipeline.py              ANPRPipeline: YOLO track (ByteTrack) -> fastplate OCR -> correct() -> voting; counts once per track.
                            THE deployed path: app, tools/run_video.py and eval_end2end use it
   ocr.py                   fastplate_reader (default, plate-trained, download retry) + EasyOCR read_plate (comparison); crop_box, preprocess(variant: gray|otsu|adaptive|clahe, fixed height 96), read_plate(reader, crop)
@@ -46,7 +47,8 @@ tools/                     evaluation CLIs (argparse, paths relative to repo roo
   make_ocr_labelset.py     crops GT plate boxes -> eval/ocr_gt/crops + ocr_gt.csv to hand-label
   label_ocr_app.py         Streamlit labeller: one crop at a time -> writes eval/ocr_gt/ocr_gt.csv (streamlit run tools/label_ocr_app.py)
   eval_ocr.py              legacy vs new OCR: exact match, CER, read rate, precision; by lines/height/condition/country
-  run_video.py             CLI: full pipeline on a video/image -> outputs/<name>/plates.csv, plates_all.csv, counts.json, annotated.mp4
+  run_video.py             CLI: full pipeline on a video/image -> outputs/<name>/plates.csv (plate log), plate_tracks.csv,
+                           counts.json, annotated.mp4. --region IN|UK|ANY (Traffic Dataset videos are UK)
   eval_end2end.py          single-frame end-to-end: detector box -> OCR -> correct vs hand labels -> docs/results/end2end.*
   eval_detector_test.py    detector metrics on labelled test images (default weights models/yolov8l_baseline.pt)
 tests/                     pytest (37 tests); CI in .github/workflows/ci.yml
@@ -56,6 +58,7 @@ scripts/data_prep/         analysis, cleaning, conversion (COCO->YOLO), merging 
                            splitting (split_final_dataset = the real split, UNSEEDED), validation
 scripts/eda/               class frequency, image quality, lighting/weather, augmentation previews, annotations, stats
 notebooks/kaggle_train_v2.ipynb  Kaggle GPU: trains YOLOv8s + YOLOv8l @960 on split v2, val+test metrics, zips results
+configs/bytetrack_anpr.yaml  tracker for queued traffic (short track memory, stricter IoU): default in ANPRPipeline
 results/v2_yolov8s_960/, results/v2_yolov8l_960/, results/summary_v2.md   Kaggle runs on split v2 (val + test metrics)
 results/baseline_yolov8l/  args.yaml, results.csv, curves, confusion matrices, val batch previews, plate_logs_legacy.csv
 reports/eda/, reports/dataset_engineering/   EDA + dataset reports (moved from eda_report/ and outputs/)
@@ -90,4 +93,7 @@ Run every script from the repo root.
 - Detector (held-out test, split v2): YOLOv8s mAP50 0.743 / YOLOv8l 0.707 (reported 0.985 was leaked val). Deploy: `models/yolov8s_v2.pt`.
 - OCR on hand-labelled GT crops (37 Indian, 13 unique plates): EasyOCR legacy 0/37; best EasyOCR 2/37; **fast-plate-ocr + correction 6/37, 67 % precision** (CER raw 0.23). Correction made strict so it never invents plates from truncated reads.
 - **New (10 Nov): `ANPRPipeline`** (detect + ByteTrack + fastplate + correct + multi-frame voting), used by the rewritten app and `tools/run_video.py`; legacy scripts removed. 50 tests incl. a fake-detector pipeline test.
-- Next: run `tools/eval_end2end.py` (single-frame end-to-end number) and `tools/run_video.py` on a traffic clip (fps on MX250, plates voted); then fine-tune fast-plate-ocr on Indian plates (Kaggle); README rewrite with honest results; FastAPI + Docker; bootstrap CIs.
+- End-to-end single frame: detector finds 100 % of readable Indian test plates; 5/37 read, 71 % of logged plates correct. Video11 is British → use `--region UK`. Pipeline speed on MX250 at 4K: 2.2 fps.
+- **Video11 demo (UK, 300 frames, after the persist fix): 9 plates logged, 9 correct, no duplicates; Car 28 / Truck 3; 2.3 fps at 4K on the MX250** (docs/results/video_demo.md). Pitfall to remember: Ultralytics binds `persist` on the first track() call → always pass persist=True, reset trackers manually.
+- README rewritten (10 Nov): results-first, audit story, pipeline diagram, limitations; no plate imagery (privacy rule). models/README lists v2 weights.
+- Next: merge PR #1; then optional: fine-tune fast-plate-ocr on Indian plates (Kaggle), FastAPI + Docker, bootstrap CIs.

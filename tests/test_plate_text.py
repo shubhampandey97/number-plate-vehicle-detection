@@ -82,3 +82,23 @@ def test_cer():
     assert cer("MH12AB1234", "MH12AB1234") == 0
     assert cer("MH12AB123", "MH12AB1234") == pytest.approx(0.1)
     assert cer("", "AB") == 1.0
+
+
+@pytest.mark.parametrize("plate", ["GX15OGJ", "NA13NRU", "AP05JEO", "FJ14ZHY", "CA02FKD"])
+def test_uk_plates_valid(plate):
+    # real plates visible in data/Traffic Dataset/video11.mp4 (British footage)
+    assert is_valid(plate, "UK") and not is_valid(plate, "IN")
+
+
+def test_uk_correction_fixes_digit_letter_confusions():
+    assert correct("GXI5OGJ", region="UK").text == "GX15OGJ"     # I -> 1 in the age digits
+    assert correct("NAI3NRU", region="UK").text == "NA13NRU"
+    assert not correct("GXIS0GJ", region="UK").valid              # old EasyOCR read: needs 3 fixes > max 2
+    assert not correct("NAI3MRUX", region="UK").valid             # wrong length: no guessing
+
+
+def test_any_region_has_no_format_rules():
+    assert correct("4345CBK", region="ANY").text == "4345CBK"     # Mexican plate
+    assert not correct("DS77", region="ANY").valid                # too short
+    with pytest.raises(ValueError):
+        correct("MH12AB1234", region="XX")

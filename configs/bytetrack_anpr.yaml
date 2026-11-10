@@ -1,0 +1,14 @@
+# ByteTrack settings for queued traffic seen by a fixed camera.
+# Ultralytics' default keeps a lost track alive for 30 frames at its last
+# position and accepts matches from IoU 0.2. In slow queues the next car that
+# reaches that spot then inherits the ID (seen in video11: plate and car ids
+# jumping between cars). Shorter memory + stricter matching avoids that; a
+# car that is really occluded for longer simply gets a new id, which the
+# text-based plate log (anpr.voting.plate_log) tolerates.
+tracker_type: bytetrack
+track_high_thresh: 0.25
+track_low_thresh: 0.1
+new_track_thresh: 0.25
+track_buffer: 8        # frames (~0.27 s at 30 fps); default 30
+match_thresh: 0.7      # cost = 1 - IoU, so IoU >= 0.3 to match; default 0.8 (IoU >= 0.2)
+fuse_score: true

@@ -95,4 +95,5 @@ Run every script from the repo root.
 - **New (10 Nov): `ANPRPipeline`** (detect + ByteTrack + fastplate + correct + multi-frame voting), used by the rewritten app and `tools/run_video.py`; legacy scripts removed. 50 tests incl. a fake-detector pipeline test.
 - End-to-end single frame: detector finds 100 % of readable Indian test plates; 5/37 read, 71 % of logged plates correct. Video11 is British → use `--region UK`. Pipeline speed on MX250 at 4K: 2.2 fps.
 - **Video11 demo (UK, 300 frames, after the persist fix): 9 plates logged, 9 correct, no duplicates; Car 28 / Truck 3; 2.3 fps at 4K on the MX250** (docs/results/video_demo.md). Pitfall to remember: Ultralytics binds `persist` on the first track() call → always pass persist=True, reset trackers manually.
-- Next: README rewrite with the honest results → merge PR #1; then optional: fine-tune fast-plate-ocr on Indian plates (Kaggle), FastAPI + Docker, bootstrap CIs.
+- README rewritten (10 Nov): results-first, audit story, pipeline diagram, limitations; no plate imagery (privacy rule). models/README lists v2 weights.
+- Next: merge PR #1; then optional: fine-tune fast-plate-ocr on Indian plates (Kaggle), FastAPI + Docker, bootstrap CIs.

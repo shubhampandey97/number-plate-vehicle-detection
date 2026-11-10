@@ -33,7 +33,7 @@ from pathlib import Path
 import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from anpr.ocr import ALLOWLIST, fastplate_reader, preprocess, read_plate  # noqa: E402
+from anpr.ocr import ALLOWLIST, fastplate_reader, read_plate  # noqa: E402
 from anpr.plate_text import cer, clean  # noqa: E402
 
 

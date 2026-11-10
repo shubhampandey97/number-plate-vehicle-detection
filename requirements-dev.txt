@@ -3,3 +3,4 @@ ruff
 numpy
 pillow
 opencv-python-headless
+pyyaml

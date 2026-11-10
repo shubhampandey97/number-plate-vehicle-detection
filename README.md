@@ -150,83 +150,25 @@ Interactive dashboard with:
 
 # 📂 Project Structure
 
+> **Upgrade in progress (branch `upgrade-v2`).** The original metrics are being re-checked: see
+> [`docs/audit.md`](docs/audit.md). Validation and test images turned out to have near-duplicates in
+> train ([`docs/leakage/leakage_report.md`](docs/leakage/leakage_report.md)), so the numbers below are
+> validation-only and optimistic. **Retrained on a deduplicated, scene-grouped split, the held-out test mAP50 is
+> 0.743 (YOLOv8s) / 0.707 (YOLOv8l)**, see [`docs/results/detector_v2.md`](docs/results/detector_v2.md).
+
 ```text
-number-plate-vehicle-detection/
-│
-├── data/
-│   ├── raw_datasets/
-│   └── final_merged_datasets/
-│
-├── eda/
-│   ├── dataset_stats.py
-│   ├── dataset_augmentation.py
-│   ├── image_quality_analysis.py
-│   ├── lighting_weather_analysis.py
-│   └── visualize_annotations.py
-│
-├── outputs/
-│   ├── logs/
-│   ├── ocr_result.jpg
-│   ├── tracked_output.mp4
-│   └── traffic_analytics_output.mp4
-│
-├── runs/
-│
-├── src/
-│   │
-│   ├── dataset_engineering/
-│   │   │
-│   │   ├── analysis/
-│   │   │   ├── analyze_dataset.py
-│   │   │   ├── analyze_classes.py
-│   │   │   └── detect_dataset_formats.py
-│   │   │
-│   │   ├── cleaning/
-│   │   │   ├── remove_unmatched_labels.py
-│   │   │   ├── remove_unlabeled_images.py
-│   │   │   └── move_unlabeled_to_test.py
-│   │   │
-│   │   ├── conversion/
-│   │   │   └── convert_coco_to_yolo.py
-│   │   │
-│   │   ├── merging/
-│   │   │   ├── merge_yolo_datasets.py
-│   │   │   └── remap_and_merge_datasets.py
-│   │   │
-│   │   ├── splitting/
-│   │   │   ├── split_dataset.py
-│   │   │   └── split_final_dataset.py
-│   │   │
-│   │   └── validation/
-│   │       ├── validate_dataset.py
-│   │       ├── validate_final_dataset.py
-│   │       └── check_dataset_pairs.py
-│   │
-│   │
-│   ├── training/
-│   │   └── train.py
-│   │
-│   ├── inference/
-│   │   ├── detect_image.py
-│   │   └── detect_video.py
-│   │
-│   ├── ocr/
-│   │   ├── plate_ocr.py
-│   │   └── video_ocr.py
-│   │
-│   ├── tracking/
-│   │   └── vehicle_tracking.py
-│   │
-│   ├── analytics/
-│       └── traffic_analytics.py
-│
-├── streamlit_app/
-│   └── app.py
-│
-├── requirements.txt
-├── environment.yml
-├── README.md
-└── .gitignore
+src/anpr/            shared library: plate-text rules (Indian formats, OCR fixes), one OCR pipeline
+tools/               evaluation CLIs: leakage check/inspection, OCR label set + eval, detector test eval
+tests/               pytest unit tests (run in CI)
+app/                 Streamlit dashboard (image / video / webcam)
+scripts/train.py     YOLOv8l training config
+scripts/data_prep/   dataset engineering: analysis, cleaning, COCO->YOLO, merging/remapping, split, validation
+scripts/eda/         EDA scripts (class frequency, image quality, lighting, augmentation, annotations)
+results/             curated results per model (baseline_yolov8l: curves, confusion matrix, results.csv)
+reports/             EDA and dataset-engineering reports
+docs/                audit, leakage reports, evaluation results
+models/              weights (git-ignored), see models/README.md
+data/                datasets (git-ignored)
 ```
 
 ---
@@ -399,7 +341,7 @@ The analytics system provides:
 Run the interactive dashboard:
 
 ```bash
-streamlit run streamlit_app/app.py
+streamlit run app/streamlit_app.py
 ```
 
 The dashboard supports:
@@ -411,32 +353,24 @@ The dashboard supports:
 
 ---
 
-# 🎥 Video OCR
+# 🎥 Command line: video or image
 
-Run real-time video inference:
+The app and this tool run the same pipeline (`src/anpr/pipeline.py`): YOLOv8s (split v2, 960 px) →
+ByteTrack → plate-trained OCR (fast-plate-ocr) → Indian-format check → voting over frames.
+Vehicles are counted once per track; a plate is logged only when at least 2 frames agree.
 
 ```bash
-python src/ocr/video_ocr.py
+python tools/run_video.py path/to/video.mp4 --save-video   # writes outputs/<name>/plates.csv, counts.json, annotated.mp4
+python tools/run_video.py path/to/image.jpg
 ```
 
----
-
-# 🚗 Vehicle Tracking
-
-Run tracking pipeline:
+# 📏 Evaluation tools
 
 ```bash
-python src/tracking/vehicle_tracking.py
-```
-
----
-
-# 📈 Traffic Analytics
-
-Run analytics system:
-
-```bash
-python src/analytics/traffic_analytics.py
+python tools/check_leakage.py --root data/final_v2        # near-duplicates across splits (expect 0)
+python tools/eval_detector_test.py                         # detector on the held-out test split
+python tools/eval_ocr.py --gpu --fastplate cct-s-v2-global-model   # OCR on hand-labelled crops
+python tools/eval_end2end.py                               # detector + OCR on single test frames
 ```
 
 ---
@@ -456,9 +390,8 @@ cd number-plate-vehicle-detection
 # 2️⃣ Create Environment
 
 ```bash
-conda create -n npvd_env python=3.11
-
-conda activate npvd_env
+conda env create -f environment.yml
+conda activate anpr_env
 ```
 
 ---
@@ -466,23 +399,25 @@ conda activate npvd_env
 # 3️⃣ Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# PyTorch first (CUDA 12.6 build shown; use the cpu index URL without an NVIDIA GPU)
+pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q tests
 ```
 
 ---
 
 # 4️⃣ Train Model
 
-```bash
-python training/train.py
-```
+Training needs a real GPU: use `notebooks/kaggle_train_v2.ipynb` on Kaggle (T4, ~50 min for YOLOv8s),
+or `python scripts/train.py` locally. Put the trained weights in `models/` (see `models/README.md`).
 
 ---
 
 # 5️⃣ Run Streamlit Dashboard
 
 ```bash
-streamlit run streamlit_app/app.py
+streamlit run app/streamlit_app.py
 ```
 
 ---

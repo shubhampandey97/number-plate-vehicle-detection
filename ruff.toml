@@ -1,0 +1,9 @@
+# Project lint settings. Having this file makes ruff ignore any personal/global
+# ruff config, so `ruff check src/anpr tools tests` gives the same result on a
+# laptop and in GitHub Actions.
+line-length = 120
+target-version = "py311"
+
+[lint]
+# ruff defaults: syntax errors, unused/undefined names, import placement, etc.
+select = ["E4", "E7", "E9", "F"]

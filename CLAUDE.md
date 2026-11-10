@@ -94,5 +94,5 @@ Run every script from the repo root.
 - OCR on hand-labelled GT crops (37 Indian, 13 unique plates): EasyOCR legacy 0/37; best EasyOCR 2/37; **fast-plate-ocr + correction 6/37, 67 % precision** (CER raw 0.23). Correction made strict so it never invents plates from truncated reads.
 - **New (10 Nov): `ANPRPipeline`** (detect + ByteTrack + fastplate + correct + multi-frame voting), used by the rewritten app and `tools/run_video.py`; legacy scripts removed. 50 tests incl. a fake-detector pipeline test.
 - End-to-end single frame: detector finds 100 % of readable Indian test plates; 5/37 read, 71 % of logged plates correct. Video11 is British → use `--region UK`. Pipeline speed on MX250 at 4K: 2.2 fps.
-- Video11 (UK, 300 frames): readings mostly right but ByteTrack swapped ids in the queue → tracker config + text-pooled plate log (10 Nov). Re-run to confirm.
+- Video11 (UK, 300 frames): plate log found 9 real plates + 4 misread variants. Found the real cause of "id swaps": Ultralytics binds `persist` on the first track() call, and we passed False on frame 0 → tracker re-created every frame. Fixed (always persist=True + explicit reset). Plate log now votes per track first. Earlier vehicle counts were invalid. Re-run to confirm.
 - Next: then fine-tune fast-plate-ocr on Indian plates (Kaggle); README rewrite with honest results; FastAPI + Docker; bootstrap CIs.

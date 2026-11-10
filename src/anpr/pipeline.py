@@ -64,16 +64,21 @@ class ANPRPipeline:
         # count it twice, so each track is counted once under its most frequent class.
         self.track_classes: dict[int, Counter] = defaultdict(Counter)
         self.plate_vehicle: dict[int, tuple] = {}
-        self._new_sequence = True
+        # Reset the tracker ourselves. Ultralytics binds `persist` the FIRST time
+        # model.track() is called and reuses that value for every later call, so calling
+        # track(persist=False) once to "start fresh" made it re-create the tracker on
+        # EVERY frame: ids became per-frame slot numbers (bug found on video11).
+        predictor = getattr(self.model, "predictor", None)
+        for t in getattr(predictor, "trackers", None) or []:
+            t.reset()
 
     # --------------------------------------------------------------- per frame
     def _detect(self, frame, track: bool):
         kw = dict(imgsz=self.imgsz, conf=self.conf, device=self.device, verbose=False)
         if track:
-            r = self.model.track(frame, persist=not self._new_sequence, tracker=self.tracker, **kw)[0]
+            r = self.model.track(frame, persist=True, tracker=self.tracker, **kw)[0]   # always True, see reset()
         else:
             r = self.model.predict(frame, **kw)[0]
-        self._new_sequence = False
         dets = []
         if r.boxes is None or len(r.boxes) == 0:
             return dets
@@ -123,12 +128,12 @@ class ANPRPipeline:
             cv2.putText(img, label, (x1, max(int(12 * s), y1 - int(6 * s))), cv2.FONT_HERSHEY_SIMPLEX, fs, col, th)
         return img
 
-    def plates(self, min_reads: int | None = None) -> list[dict]:
+    def plates(self, min_reads: int | None = None, by: str = "track") -> list[dict]:
         """The plate log: one row per distinct plate text, pooled over tracks
         (robust to tracker id swaps). min_reads defaults to max(min_votes, 3) on
         video and 1 for still images (min_votes=1)."""
         n = min_reads if min_reads is not None else (1 if self.voter.min_votes <= 1 else max(3, self.voter.min_votes))
-        rows = self.voter.plate_log(min_reads=n)
+        rows = self.voter.plate_log(min_reads=n, by=by)
         for r in rows:
             vehicles = Counter(self.plate_vehicle.get(t, (None, None))[1] for t in r["tracks"])
             vehicles.pop(None, None)

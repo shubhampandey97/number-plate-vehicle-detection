@@ -56,7 +56,7 @@ def test_plate_log_survives_id_swaps():
         v.add(3, "NA13NRU", 30, f)
     v.add(4, "NA13NFU", 10, 3)
     v.add(4, "NA13NFU", 10, 4)
-    log = {r["plate"]: r for r in v.plate_log(min_reads=3)}
+    log = {r["plate"]: r for r in v.plate_log(min_reads=3, by="reads")}
     assert set(log) == {"GX15OGJ", "AP05JEO", "NA13NRU"}       # each plate once, no NA13NFU
     assert log["AP05JEO"]["reads"] == 15 and log["AP05JEO"]["tracks"] == [1, 2]
     assert log["NA13NRU"]["merged_variants"] == ["NA13NFU"] and log["NA13NRU"]["reads"] == 8
@@ -74,3 +74,23 @@ def test_plate_log_min_reads():
 def test_edit_distance():
     assert edit_distance("NA13NRU", "NA13NFU") == 1
     assert edit_distance("GX15OGJ", "AP05JEO") > 1
+
+
+def test_track_mode_drops_scattered_misreads():
+    # one well-tracked KH05ZZK plate: 20 correct reads + scattered 2-edit misreads
+    v = PlateVoter(min_votes=2)
+    for f in range(20):
+        v.add(5, "KH05ZZK", 20, f)
+    for f, t in enumerate(["MM05ZZK"] * 4 + ["KM05ZTK"] * 3, start=20):
+        v.add(5, t, 20, f)
+    assert [r["plate"] for r in v.plate_log(min_reads=3, by="track")] == ["KH05ZZK"]
+    assert {r["plate"] for r in v.plate_log(min_reads=3, by="reads")} == {"KH05ZZK", "MM05ZZK", "KM05ZTK"}
+
+
+def test_track_mode_keeps_second_plate_after_real_switch():
+    v = PlateVoter(min_votes=2)
+    for f in range(10):
+        v.add(1, "GX15OGJ", 20, f)
+    for f in range(10, 18):
+        v.add(1, "AP05JEO", 20, f)                   # 8 >= 0.5 * 10: kept
+    assert {r["plate"] for r in v.plate_log(min_reads=3)} == {"GX15OGJ", "AP05JEO"}

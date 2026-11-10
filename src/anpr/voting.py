@@ -72,8 +72,15 @@ class PlateVoter:
     def results(self) -> list[PlateResult]:
         return [self.result(tid) for tid in sorted(self.tracks)]
 
-    def plate_log(self, min_reads: int = 3, merge_dist: int = 1) -> list[dict]:
-        """Plates by TEXT, pooled over all tracks.
+    def plate_log(self, min_reads: int = 3, merge_dist: int = 1, by: str = "track",
+                  keep_ratio: float = 0.5) -> list[dict]:
+        """Plates by TEXT, pooled over tracks.
+
+        by="track" (default): each track first votes; only its winning text (and any
+        other text with >= keep_ratio of the winner's reads, in case the tracker
+        really did switch cars) enters the pool. Scattered misreads inside a
+        well-tracked plate never reach the log.
+        by="reads": every valid read enters the pool (use when tracking is poor).
 
         Trackers swap ids in dense queues (one id ends up on several cars, or one
         car gets several ids). Pooling every valid read by its text makes the log
@@ -81,9 +88,16 @@ class PlateVoter:
         and texts within `merge_dist` edits of a stronger text are folded into it
         (e.g. NA13NFU into NA13NRU) instead of becoming a second, wrong plate.
         """
+        if by not in ("track", "reads"):
+            raise ValueError('by must be "track" or "reads"')
         pool: dict[str, dict] = {}
         for tid, t in self.tracks.items():
-            for text, n in t.counts.items():
+            texts = t.counts
+            if by == "track" and texts:
+                top = max(texts, key=lambda k: (t.votes[k], texts[k]))
+                texts = {k: n for k, n in texts.items()
+                         if k == top or n >= max(self.min_votes, keep_ratio * texts[top])}
+            for text, n in texts.items():
                 p = pool.setdefault(text, {"plate": text, "reads": 0, "weight": 0.0, "tracks": set(),
                                            "first_frame": t.frames[text][0], "last_frame": t.frames[text][1]})
                 p["reads"] += n

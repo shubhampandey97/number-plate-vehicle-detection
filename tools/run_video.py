@@ -52,6 +52,8 @@ def main():
     ap.add_argument("--ocr-every", type=int, default=1, help="read plates every N frames")
     ap.add_argument("--min-votes", type=int, default=2, help="agreeing valid reads per plate track (overlay)")
     ap.add_argument("--min-reads", type=int, default=3, help="agreeing valid reads needed in the plate log")
+    ap.add_argument("--log-by", default="track", choices=["track", "reads"],
+                    help="track: each track votes first (default); reads: pool every read (if tracking is poor)")
     ap.add_argument("--max-frames", type=int, default=0)
     ap.add_argument("--region", default="IN", choices=["IN", "UK", "ANY"],
                     help="plate format rules; the 'Traffic Dataset' videos are British (UK)")
@@ -97,7 +99,7 @@ def main():
             writer.release()
         secs = time.time() - t0
 
-    plates = pipe.plates(min_reads=1 if frames == 1 else a.min_reads)
+    plates = pipe.plates(min_reads=1 if frames == 1 else a.min_reads, by=a.log_by)
     by_track = pipe.plates_by_track(include_unread=True)
     write_csv(out / "plates.csv", plates, LOG_COLS)
     write_csv(out / "plate_tracks.csv", by_track, TRACK_COLS)
@@ -106,7 +108,8 @@ def main():
                "fps": round(frames / secs, 2) if secs else None, "weights": a.weights, "imgsz": a.imgsz,
                "region": a.region, "min_votes": a.min_votes, "ocr_every": a.ocr_every,
                "min_track_frames": a.min_track_frames, "vehicle_counts": counts,
-               "min_reads": a.min_reads, "plate_tracks": len(by_track), "plates_logged": len(plates)}
+               "min_reads": a.min_reads, "log_by": a.log_by, "plate_tracks": len(by_track),
+               "plates_logged": len(plates)}
     (out / "counts.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     for p in plates:
